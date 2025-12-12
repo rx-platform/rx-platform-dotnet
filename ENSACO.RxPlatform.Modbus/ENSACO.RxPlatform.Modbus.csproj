@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+    <EnableUnmanagedExports>false</EnableUnmanagedExports>
+    <Version>1.6.0</Version>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>{rx-platform} .NET Modbus Library</Title>
+    <Authors>ENSACO Solutions doo</Authors>
+    <Company>ENSACO Solutions doo</Company>
+    <Product>{rx-platform}</Product>
+    <Description>Package contains .NET Core model for {rx-platform} Modbus implementation.</Description>
+    <PackageIcon>rx-platform-256.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright (c) 2025 ENSACO Solutions doo</Copyright>
+    <PackageProjectUrl>http://rx-platform.org/</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\Images\Logo\rx-platform-256.png" Link="rx-platform-256.png">
+      <PackagePath>\</PackagePath>
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ENSACO.RxPlatform" Version="1.5.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>1.3.1.0</Version>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+    <SignAssembly>False</SignAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ENSACO.RxPlatform" Version="1.5.5.3" />
+    <PackageReference Include="ENSACO.RxPlatform.Modbus" Version="1.5.5.1">
+      <GeneratePathProperty>True</GeneratePathProperty>
+    </PackageReference>
+  </ItemGroup>
+
+
+  <Target Name="CopyDependenciesToLib" AfterTargets="Build">
+    <Copy SourceFiles="@(PkgENSACO_RxPlatform_Modbus)" DestinationFolder="$(OutDir)lib\" />
+  </Target>
+
+</Project>

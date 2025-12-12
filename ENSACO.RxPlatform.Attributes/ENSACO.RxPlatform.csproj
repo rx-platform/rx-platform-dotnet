@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+    <EnableUnmanagedExports>false</EnableUnmanagedExports>
+    <Version>1.6.0</Version>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>{rx-platform} .NET Core Library</Title>
+    <Authors>ENSACO Solutions doo</Authors>
+    <Company>ENSACO Solutions doo</Company>
+    <Product>{rx-platform}</Product>
+    <Description>Package that enables building .NET Core libraries for {rx-platform}.</Description>
+    <PackageIcon>rx-platform-256.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright (c) 2025 ENSACO Solutions doo</Copyright>
+    <PackageProjectUrl>http://rx-platform.org/</PackageProjectUrl>
+    <SignAssembly>False</SignAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\Images\Logo\rx-platform-256.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
