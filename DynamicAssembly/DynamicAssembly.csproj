@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ENSACO.RxPlatform" Version="1.5.5.3" />
-    <PackageReference Include="ENSACO.RxPlatform.Modbus" Version="1.5.5.1">
+    <PackageReference Include="ENSACO.RxPlatform" Version="1.6.0" />
+    <PackageReference Include="ENSACO.RxPlatform.Modbus" Version="1.6.0">
       <GeneratePathProperty>True</GeneratePathProperty>
     </PackageReference>
   </ItemGroup>

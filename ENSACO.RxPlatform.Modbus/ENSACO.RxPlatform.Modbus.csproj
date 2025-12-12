@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ENSACO.RxPlatform" Version="1.5.5" />
+    <PackageReference Include="ENSACO.RxPlatform" Version="1.6.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -84,7 +84,7 @@ namespace ENSACO.RxPlatform.Hosting
             IntPtr assemblies, uint count, string_value_struct* version)
         {
 
-            System.Diagnostics.Debugger.Launch();
+        //    System.Diagnostics.Debugger.Launch();
 
             dotnet_loading_api_t napi = Marshal.PtrToStructure<dotnet_loading_api_t>(apiPtr);
             ENSACO.RxPlatform.Host.PlatformLibraryInfo info = new ENSACO.RxPlatform.Host.PlatformLibraryInfo

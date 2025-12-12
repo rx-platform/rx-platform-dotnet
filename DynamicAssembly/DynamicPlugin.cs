@@ -38,7 +38,7 @@ namespace DynamicAssembly
             masterStack.TcpPort.Timeouts.ReceiveTimeout = 60000;
             await ModbusUtility.DownloadStack(masterStack, "Test1Master", "ports", Assembly.GetExecutingAssembly());
 
-            System.Diagnostics.Debugger.Launch();
+      //      System.Diagnostics.Debugger.Launch();
 
 
             other1 = await RxPlatformObjectRuntime.CreateInstance<SubNamespace.SomeOtherDynamicObject>(
