@@ -48,6 +48,19 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 }
             }
         }
+        private static void ConnectDisplayType(string typeName, ref PlatformTypeBuildMeta<RxPlatformDisplayType> type, Assembly assembly)
+        {
+            Type? dynamicType = assembly.GetType(typeName, false);
+            if (dynamicType != null)
+            {
+                type.runtimeConstructor = ReflectionHelpers.CreateConstructorFunc(dynamicType);
+                if (type.runtimeConstructor == null)
+                {
+                    RxPlatformObject.Instance.WriteLogWarning("RxAssemblyGenerator.ConnectDisplayType", 100
+                        , $"Default constructor for runtime type {type.codeNamespace}.{type.name} not found.");
+                }
+            }
+        }
         private static void ConnectSourceType(string typeName, ref PlatformTypeBuildMeta<RxPlatformSourceType> type, Assembly assembly)
         {
             Type? dynamicType = assembly.GetType(typeName, false);
@@ -153,6 +166,15 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 ConnectEventType(typeName, ref type, assembly);
                 tempData.EventTypes[kvp.Key] = type;
             }
+            foreach (var kvp in tempData.DisplayTypes)
+            {
+                if (!kvp.Value.valid || !kvp.Value.runtimeType || kvp.Value.codeNamespace == null)
+                    continue;
+                string typeName = $"{kvp.Value.codeNamespace}{RxMemoryCompiler.overridePostfix}.{kvp.Value.name}";
+                var type = kvp.Value;
+                ConnectDisplayType(typeName, ref type, assembly);
+                tempData.DisplayTypes[kvp.Key] = type;
+            }
         }
         internal static void GenerateAssembly(PlatformTypeBuildData tempData, HostedPlatformLibrary hostLib)
         {
@@ -201,7 +223,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 {
                     foreach (var diagnostic in ret.Diagnostics)
                     {
-                        RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BuildPlatformTypes", 100
+                        RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BuildPlatformTypes", 100
                             , $"Error compiling dynamic assembly for assembly {parentAssembly.GetName().Name}: {diagnostic.ToString()}");
                     }
                 }
@@ -224,6 +246,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
         {
             StringBuilder codeStream = new StringBuilder();
             codeStream.AppendLine("// Auto-generated code for RxPlatform Types");
+            codeStream.AppendLine($"// {DateTime.Now.ToString("yyyy.MM.ddTHH:mm:ss")}");
             codeStream.AppendLine(@"
 using System;
 using System.Diagnostics;
@@ -266,6 +289,13 @@ using System.Text.Json;
                     continue;
 
                 RxMemoryCompiler.GenerateEventTypeSourceCode(kvp.Value, codeStream);
+            }
+            foreach (var kvp in tempData.DisplayTypes)
+            {
+                if (!kvp.Value.valid || !kvp.Value.runtimeType)
+                    continue;
+
+                RxMemoryCompiler.GenerateDisplayTypeSourceCode(kvp.Value, codeStream);
             }
 
             return codeStream.ToString();

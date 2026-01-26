@@ -203,4 +203,19 @@ namespace ENSACO.RxPlatform.Hosting.Model.Items
     };
 
 
+    class RxDisplayDataItem
+    {
+        public string name { get; set; } = "";
+        public RXHostReferenceId target { get; set; } = new RXHostReferenceId();
+        public string description { get; set; } = "";
+        public RxAccessInfo access { get; set; } = new RxAccessInfo();
+
+        public bool input { get; set; } = true;
+        public bool output { get; set; } = true;
+        public bool sim { get; set; } = true;
+        public bool proc { get; set; } = true;
+
+    };
+
+
 }

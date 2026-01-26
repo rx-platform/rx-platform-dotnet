@@ -342,6 +342,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
             FillTypes(data.FilterTypes);
             FillTypes(data.VariableTypes);
             FillTypes(data.StructTypes);
+            FillTypes(data.DisplayTypes);
 
             FillTypes(data.ObjectTypes);
             FillTypes(data.PortTypes);

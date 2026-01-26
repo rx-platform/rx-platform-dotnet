@@ -61,6 +61,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                 objType.mappers = new RxMapperDataItem[0];
                 objType.filters = new RxFilterDataItem[0];
                 objType.sources = new RxSourceDataItem[0];
+                objType.displays = new RxDisplayDataItem[0];
                 data[kvp.Key] = objType;
             }
         }
@@ -143,6 +144,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
             FillTypes(data.FilterTypes);
             FillTypes(data.VariableTypes);
             FillTypes(data.StructTypes);
+            FillTypes(data.DisplayTypes);
 
             FillTypes(data.ObjectTypes);
             FillTypes(data.PortTypes);

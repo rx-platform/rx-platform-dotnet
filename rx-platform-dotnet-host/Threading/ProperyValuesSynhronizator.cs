@@ -56,7 +56,6 @@ namespace ENSACO.RxPlatform.Hosting.Threading
 
             foreach (var item in toProcess)
             {
-                Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss.fff")}Sending updates to runtime for {item.Value.Count} properties");
                 item.Key.__ValuesCallback(item.Value.ToArray());
             }
         }
@@ -73,7 +72,6 @@ namespace ENSACO.RxPlatform.Hosting.Threading
             {
                 foreach (var item in toProcess)
                 {
-                    Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss.fff")}Sending updates to runtime for {item.Value.Count} properties");
                     item.Key.__ValuesCallback(item.Value.ToArray());
                 }
             });

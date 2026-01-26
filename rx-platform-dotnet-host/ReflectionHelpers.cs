@@ -17,7 +17,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             // This pattern can be cached in a static dictionary for performance if needed.
 
             // 1. Get the constructor information for the type T with no parameters.
-            ConstructorInfo constructorInfo = typeof(T).GetConstructor(Type.EmptyTypes);
+            ConstructorInfo? constructorInfo = typeof(T).GetConstructor(Type.EmptyTypes);
 
             if (constructorInfo == null)
             {
@@ -38,7 +38,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
         }
         static internal Func<object>? CreateConstructorFunc(Type type)
         {
-            
+
             if (type.IsGenericType)
             {
                 Type instType = type.MakeGenericType(new Type[] { typeof(int) });
@@ -77,7 +77,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
         internal static RxHostValueType GetVariableValue(PropertyInfo prop, Type propType, object? value)
         {
             RxHostValueType rxValue = new RxHostValueType();
-            if(value!=null)
+            if (value != null)
             {
                 var varProp = propType.GetProperty("_");
                 if (varProp != null)
@@ -257,7 +257,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
         }
         static private bool IsVariableType(Type type)
         {
-            if(type.IsGenericType && type.GetCustomAttribute<RxPlatformVariableType>()!=null)
+            if (type.IsGenericType && type.GetCustomAttribute<RxPlatformVariableType>() != null)
             {
                 return true;
             }
@@ -270,12 +270,24 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             {
                 NullabilityInfoContext context = new NullabilityInfoContext();
                 var info = context.Create(prop);
-                if(info.WriteState  == NullabilityState.Nullable || info.ReadState == NullabilityState.Nullable)
+                if (info.WriteState == NullabilityState.Nullable || info.ReadState == NullabilityState.Nullable)
                 {
                     propType = prop.PropertyType;
                 }
             }
             return propType;
+        }
+        static internal Type? GetTaskType(Type type)
+        {
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                return type.GetGenericArguments()[0];
+            }
+            if (type == typeof(Task))
+            {
+                return typeof(void); // Or null, depending on your needs
+            }
+            return null;
         }
         static internal Type? GetNullableType(ParameterInfo prop)
         {
@@ -348,7 +360,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (var prop in propertyInfos)
             {
-                if(prop.DeclaringType != type)
+                if (prop.DeclaringType != type)
                 {
                     continue;
                 }
@@ -361,7 +373,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                         continue;
                     }
                 }
-                if(!IsVirtual(prop))
+                if (!IsVirtual(prop))
                 {
                     continue;
                 }
@@ -402,7 +414,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
         static internal string? EventType(Type type, PropertyInfo prop)
         {
             var eventName = $"On{prop.Name}Change";
-            var eventInfo =  type.GetEvent(eventName);
+            var eventInfo = type.GetEvent(eventName);
             if (eventInfo != null && eventInfo.EventHandlerType != null)
             {
                 string? typeName = eventInfo.EventHandlerType.FullName;
@@ -424,12 +436,12 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                     }
                 }
                 var method = eventInfo.EventHandlerType.GetMethod("Invoke");
-                if(method!=null && method.ReturnType == typeof(void))
+                if (method != null && method.ReturnType == typeof(void))
                 {
                     var parameters = method.GetParameters();
-                    if(parameters.Length==1)
+                    if (parameters.Length == 1)
                     {
-                        if(parameters[0].ParameterType == prop.PropertyType)
+                        if (parameters[0].ParameterType == prop.PropertyType)
                         {
                             return typeName;
                         }
@@ -447,7 +459,12 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                 var parameters = methodInfo.GetParameters();
                 if (parameters.Length == 1)
                 {
-                    if (parameters[0].ParameterType == prop.PropertyType)
+                    Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
+                    if (propType == null)
+                    {
+                        propType = prop.PropertyType;
+                    }
+                    if (parameters[0].ParameterType == propType)
                     {
                         return true;
                     }
@@ -465,7 +482,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                 if (prop.DeclaringType == type)
                 {
                     Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
-                    if(propType == null)
+                    if (propType == null)
                     {
                         propType = prop.PropertyType;
                     }
@@ -473,7 +490,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                     {
                         ret.Add(prop);
                     }
-                    else if(IsEnumerableType(prop.PropertyType))
+                    else if (IsEnumerableType(prop.PropertyType))
                     {
                         var itemType = GetEnumerableElement(prop.PropertyType);
                         if (itemType != null)
@@ -482,7 +499,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                             {
                                 ret.Add(prop);
                             }
-                            else if(IsVariableType(itemType))
+                            else if (IsVariableType(itemType))
                             {
                                 ret.Add(prop);
                             }
@@ -501,7 +518,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                     }
                     else
                     {
-                        if(null != prop.PropertyType.GetCustomAttribute<RxPlatformDataType>())
+                        if (null != prop.PropertyType.GetCustomAttribute<RxPlatformDataType>())
                         {
                             ret.Add(prop);
                         }
@@ -538,6 +555,28 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                         {
                             ret.Add(prop);
                         }
+                    }
+                }
+            }
+            return ret.ToArray();
+        }
+        static internal PropertyInfo[] GetDisplayPropertyInfos(Type type)
+        {
+            List<PropertyInfo> ret = new List<PropertyInfo>();
+            var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var prop in propertyInfos)
+            {
+                if (prop.DeclaringType == type)
+                {
+                    Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
+                    if (propType == null)
+                    {
+                        continue;
+                    }
+                    propType = prop.PropertyType;
+                    if (null != prop.PropertyType.GetCustomAttribute<RxPlatformDisplayType>())
+                    {
+                        ret.Add(prop);
                     }
                 }
             }
@@ -621,10 +660,6 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var ret = new Tuple<string?, RxPlatformObjectRuntime?>(null, null);
             if (constructor != null)
             {
-                if(constructor.DeclaringType!=null)
-                {
-                    Console.WriteLine($"*******{constructor.DeclaringType.FullName}\r\n*****");
-                }
                 var instance = constructor.Invoke(null) as RxPlatformObjectRuntime;
                 if (instance != null)
                 {
@@ -637,7 +672,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
         }
         internal static bool IsRxDataType(Type type)
         {
-            if(type == typeof(void))
+            if (type == typeof(void))
             {
                 return true;
             }
@@ -654,32 +689,32 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
             foreach (var method in methodInfos)
             {
-                if(method.DeclaringType != type)
+                if (method.DeclaringType != type)
                 {
                     continue;
                 }
-                if(method.IsSpecialName || method.Name == "Started" || method.Name == "Stopping")
+                if (method.IsSpecialName || method.Name == "Started" || method.Name == "Stopping")
                 {
                     continue;
                 }
-                if(method.GetCustomAttribute<RxPlatformMethodType>()!=null)
+                if (method.GetCustomAttribute<RxPlatformMethodType>() != null)
                 {
                     continue;
                 }
                 Type? paramType = null;
                 Type? returnType = null;
                 var parmsInfo = method.GetParameters();
-                if(parmsInfo==null || parmsInfo.Length == 0)
+                if (parmsInfo == null || parmsInfo.Length == 0)
                 {
                     paramType = typeof(void);
                 }
-                if (parmsInfo!=null && parmsInfo.Length == 1 )
+                if (parmsInfo != null && parmsInfo.Length == 1)
                 {
                     paramType = Nullable.GetUnderlyingType(parmsInfo[0].ParameterType);
                 }
 
                 returnType = Nullable.GetUnderlyingType(method.ReturnType);
-                if(returnType==null)
+                if (returnType == null)
                 {
                     returnType = typeof(void);
                 }
@@ -694,7 +729,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
         internal static bool IsAsyncMethod(MethodInfo method)
         {
             bool returnValue = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
-            if(!returnValue)
+            if (!returnValue)
             {
                 if (method.ReturnType == typeof(Task) || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)))
                 {
@@ -710,7 +745,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
 
         internal static bool IsRxPlatformResultDelegate(Type type)
         {
-            if(type.IsSubclassOf(typeof(Delegate)))
+            if (type.IsSubclassOf(typeof(Delegate)))
             {
                 MethodInfo? invokeMethod = type.GetMethod("Invoke");
                 if (invokeMethod != null)
@@ -719,7 +754,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                     if (parameters.Length == 1)
                     {
                         var ttempType = GetNullableType(parameters[0]);
-                        if(ttempType != null && ttempType == typeof(Exception))
+                        if (ttempType != null && ttempType == typeof(Exception))
                         {
                             return true;
                         }
@@ -739,21 +774,53 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                 {
                     continue;
                 }
-                if (method.Name == "SourceWrite" 
+                if (method.Name == "SourceWrite"
                     && method.ReturnType == typeof(void))
                 {
                     var paramsInfo = method.GetParameters();
-                    if(paramsInfo.Length != 2)
+                    if (paramsInfo.Length != 2)
                     {
                         continue;
                     }
 
                     Type paramType = paramsInfo[0].ParameterType;
                     Type param2Type = paramsInfo[1].ParameterType;
-                    if(IsRxPlatformResultDelegate(param2Type))
+                    if (IsRxPlatformResultDelegate(param2Type))
                     {
                         ret.Add(method);
                     }
+                }
+            }
+            return ret.ToArray();
+        }
+        internal static MethodInfo[] GetRequestHandlers(Type type)
+        {
+            List<MethodInfo> ret = new List<MethodInfo>();
+            var methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var method in methodInfos)
+            {
+                if (method.DeclaringType != type)
+                {
+                    continue;
+                }
+                if (method.ReturnType != typeof(Task<HttpResponseMessage>))
+                {
+                    continue;
+                }
+
+                var paramsInfo = method.GetParameters();
+                if (paramsInfo == null || paramsInfo.Length != 1)
+                    continue;
+                if (paramsInfo[0].ParameterType != typeof(HttpRequestMessage))
+                    continue;
+
+                ret.Add(method);
+
+                Type paramType = paramsInfo[0].ParameterType;
+                Type param2Type = paramsInfo[1].ParameterType;
+                if (IsRxPlatformResultDelegate(param2Type))
+                {
+                    ret.Add(method);
                 }
             }
             return ret.ToArray();

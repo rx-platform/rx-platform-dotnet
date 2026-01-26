@@ -28,6 +28,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal List<RxNodeId> sourceTypes;
         internal List<RxNodeId> eventTypes;
         internal List<RxNodeId> filterTypes;
+        internal List<RxNodeId> displayTypes;
 
         internal List<RxNodeId> dataTypes;
     }
@@ -240,6 +241,12 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         AddRxType(sourceAttr, tempData.SourceTypes, type, defined, runtime, hostLib);
                         hadOne = true;
                     }
+                    var displayAttr = type.GetCustomAttribute<RxPlatformDisplayType>();
+                    if (displayAttr != null)
+                    {
+                        AddRxType(displayAttr, tempData.DisplayTypes, type, defined, runtime, hostLib);
+                        hadOne = true;
+                    }
                     var eventAttr = type.GetCustomAttribute<RxPlatformEventType>();
                     if (eventAttr != null)
                     {
@@ -260,7 +267,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     }
                     else if (!hadOne && (defined || runtime))
                     {
-                        RxPlatformObject.Instance.WriteLogWarining("", 200, $"Type {type.FullName} is not a class and does not have any valid type attribute.");
+                        RxPlatformObject.Instance.WriteLogError("", 200, $"Type {type.FullName} is not a class and does not have any valid type attribute.");
                     }
                 }
                 else
@@ -274,7 +281,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     }
                     else if (defined || runtime)
                     {
-                        RxPlatformObject.Instance.WriteLogWarining("", 200, $"Type {type.FullName} is not a class and does not have a RxPlatformDataType attribute.");
+                        RxPlatformObject.Instance.WriteLogError("", 200, $"Type {type.FullName} is not a class and does not have a RxPlatformDataType attribute.");
                     }
                 }
 
@@ -369,6 +376,13 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         RxMetaData.Instance.FilterTypes.Add(kvp.Key
                             , ConvertData<RxPlatformFilterType>(kvp.Value));
                     }
+                    foreach (var kvp in tempData.DisplayTypes)
+                    {
+                        if (!kvp.Value.valid)
+                            continue;
+                        RxMetaData.Instance.DisplayTypes.Add(kvp.Key
+                            , ConvertData<RxPlatformDisplayType>(kvp.Value));
+                    }
 
                     foreach (var kvp in tempData.DataTypes)
                     {
@@ -395,6 +409,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 variableTypes = new List<RxNodeId>(),
                 sourceTypes = new List<RxNodeId>(),
                 eventTypes = new List<RxNodeId>(),
+                displayTypes = new List<RxNodeId>(),
                 filterTypes = new List<RxNodeId>(),
                 dataTypes = new List<RxNodeId>()
             };
@@ -610,6 +625,39 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             RxMetaData.Instance.EventRuntimes.RegisteredConstructors.Add(kvp.Key, data);
                         }
                     }
+
+                    foreach (var kvp in tempData.DisplayTypes)
+                    {
+                        if (!kvp.Value.valid)
+                            continue;
+                        ret.displayTypes.Add(kvp.Key);
+                        RxMetaData.Instance.DisplayTypes.Add(kvp.Key
+                            , ConvertData<RxPlatformDisplayType>(kvp.Value));
+
+                        if (kvp.Value.runtimeType && kvp.Value.runtimeConstructor != null)
+                        {
+                            byte[]? initialValues = null;
+                            if (kvp.Value.defaultConstructor != null)
+                            {
+                                RxPlatformDisplayRuntime? def = kvp.Value.defaultConstructor() as RxPlatformDisplayRuntime;
+                                if (def != null)
+                                {
+                                    MemoryStream ms = new MemoryStream();
+                                    Utf8JsonWriter writer = new Utf8JsonWriter(ms);
+                                    def.__rxStructSerialize(writer);
+                                    initialValues = ms.ToArray();
+                                }
+                            }
+                            RuntimeConstructionData data = new RuntimeConstructionData
+                            {
+                                constructor = kvp.Value.runtimeConstructor,
+                                startMethod = kvp.Value.startMethod,
+                                stopMethod = kvp.Value.stopMethod,
+                                initialValues = initialValues
+                            };
+                            RxMetaData.Instance.DisplayRuntimes.RegisteredConstructors.Add(kvp.Key, data);
+                        }
+                    }
                     foreach (var kvp in tempData.FilterTypes)
                     {
                         if (!kvp.Value.valid)
@@ -644,6 +692,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
             new RxOwnMethodsGetter(),
             new RxCallableMethodsGetter(),
             new RxSourceModelGetter(),
+            new RxDisplayModelGetter(),
             new RxRelationsGetter(),
             new RxOwnRelationsGetter()
         };
@@ -652,6 +701,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
             new RxInitialDataFill(),
             new RxItemsFill(),
             new RxSourcesFill(),
+            new RxDisplaysFill(),
             new RxMappersFill(),
             new RxFiltersFill(),
             new RxRelationsGetter()

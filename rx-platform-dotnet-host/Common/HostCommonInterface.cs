@@ -206,9 +206,11 @@ namespace ENSACO.RxPlatform.Hosting.Common
                     uint code = 0;
                     string? msg = Marshal.PtrToStringUTF8(CommonInterface.rx_result_get_error(ret, i, &code));
                     if (msg != null)
-                        stream.AppendLine(msg);
+                    {
+                        stream.Append(msg);
+                        stream.Append(";");
+                    }
                 }
-                ;
                 return new Exception(stream.ToString());
             }
             return null;

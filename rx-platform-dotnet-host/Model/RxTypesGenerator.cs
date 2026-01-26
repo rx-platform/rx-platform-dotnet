@@ -21,9 +21,13 @@ namespace ENSACO.RxPlatform.Hosting.Model
             , string overrides
             , HostedPlatformLibrary lib)
         {
-            if(PlatformHostMain.api.BuildType == null)
+
+            RxPlatformObject.Instance.WriteLogDebug("RxTypesGenerator", 100
+                , $"Building type {path}/{name}.");
+
+            if (PlatformHostMain.api.BuildType == null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("RxTypesGenerator", 200
+                RxPlatformObject.Instance.WriteLogError("RxTypesGenerator", 200
                     , $"Error building Type {path}/{name}: API not initialized.");
                 return false;
             }
@@ -77,7 +81,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
 
             if (exception != null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("RxTypesGenerator", 200
+                RxPlatformObject.Instance.WriteLogError("RxTypesGenerator", 200
                     , $"Error building Type {path}/{name}: {exception.Message}");
 
                 return false;
@@ -101,6 +105,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
             , string overrides
             , RxMetaItem[] items
             , RxMethodDataItem[] methods
+            , RxDisplayDataItem[] displays
             , RxSourceDataItem[] sources
             , RxMapperDataItem[] mappers
             , RxRelationDataItem[] relations
@@ -108,9 +113,12 @@ namespace ENSACO.RxPlatform.Hosting.Model
             , HostedPlatformLibrary lib)
         {
 
+            RxPlatformObject.Instance.WriteLogDebug("RxTypesGenerator", 100
+                , $"Building type {path}/{name}.");
+
             if (PlatformHostMain.api.BuildType == null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("RxTypesGenerator", 200
+                RxPlatformObject.Instance.WriteLogError("RxTypesGenerator", 200
                     , $"Error building Type {path}/{name}: API not initialized.");
                 return false;
             }
@@ -169,8 +177,10 @@ namespace ENSACO.RxPlatform.Hosting.Model
 
             def += @"
 ,
-        ""displays"": []
-    }
+        ""displays"": [] 
+";
+            def+= JsonSerializer.Serialize(displays, PlatformHostMain.JsonContext);
+            def += @"
 }
 ";
 
@@ -194,7 +204,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
 
             if (exception != null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("RxTypesGenerator", 200
+                RxPlatformObject.Instance.WriteLogError("RxTypesGenerator", 200
                     , $"Error building Type {path}/{name}: {exception.Message}");
                 
                 return false;
@@ -238,6 +248,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , overrides
                     , type.items
                     , type.methods
+                    , type.displays
                     , type.sources
                     , type.mappers
                     , type.relations
@@ -277,6 +288,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , overrides
                     , type.items
                     , type.methods
+                    , type.displays
                     , type.sources
                     , type.mappers
                     , type.relations
@@ -316,6 +328,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , overrides
                     , type.items
                     , type.methods
+                    , type.displays
                     , type.sources
                     , type.mappers
                     , type.relations
@@ -355,6 +368,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , overrides
                     , type.items
                     , type.methods
+                    , type.displays
                     , type.sources
                     , type.mappers
                     , type.relations
@@ -479,9 +493,13 @@ namespace ENSACO.RxPlatform.Hosting.Model
             , HostedPlatformLibrary lib)
         {
 
+
+            RxPlatformObject.Instance.WriteLogDebug("RxTypesGenerator", 100
+                , $"Building type {path}/{name}.");
+
             if (PlatformHostMain.api.BuildType == null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("RxTypesGenerator", 200
+                RxPlatformObject.Instance.WriteLogError("RxTypesGenerator", 200
                     , $"Error building Type {path}/{name}: API not initialized.");
                 return false;
             }
@@ -566,7 +584,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
 
             if (exception != null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("RxTypesGenerator", 200
+                RxPlatformObject.Instance.WriteLogError("RxTypesGenerator", 200
                     , $"Error building Type {path}/{name}: {exception.Message}");
 
                 return false;
@@ -618,6 +636,45 @@ namespace ENSACO.RxPlatform.Hosting.Model
             }
             return true;
         }
+
+        static bool GenerateDisplayType(PlatformTypeBuildMeta<RxPlatformDisplayType> type, HostedPlatformLibrary lib)
+        {
+
+            if (PlatformHostMain.api.BuildType == null)
+                throw new Exception("BuildType function is not available in the API.");
+
+            if (type.attribute != null && type.defaultConstructor != null && type.definedType)
+            {
+                string overrides = "{}";
+                if (type.defaultConstructor != null)
+                {
+                    var tempObj = type.defaultConstructor.Invoke();
+                    if (tempObj != null)
+                    {
+                        overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
+                    }
+                }
+                if (GenerateSimpleType(
+                    type.runtimeType
+                    , rx_item_type.rx_source_type
+                    , type.name
+                    , type.path
+                    , type.id
+                    , type.parentId
+                    , HostPlatformIds.RX_DOTNET_SOURCE_TYPE_ID
+                    , overrides
+                    , type.items
+                    , null //type.sources
+                    , null //type.mappers
+                    , type.filters
+                    , type.runtimeConnections + "|" + type.initialValues
+                    , lib))
+                    return false;//no changes
+
+                type.valid = false;
+            }
+            return true;
+        }
         static void GenerateSourceTypes(Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformSourceType>> data, HostedPlatformLibrary lib)
         {
             foreach (var kvp in data)
@@ -629,6 +686,20 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     continue;
                 if (GenerateSourceType(sourceType, lib))
                     data[kvp.Key] = sourceType;
+            }
+        }
+
+        static void GenerateDisplayTypes(Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformDisplayType>> data, HostedPlatformLibrary lib)
+        {
+            foreach (var kvp in data)
+            {
+                var displayType = kvp.Value;
+                if (!displayType.valid)
+                    continue;
+                if (!displayType.definedType)
+                    continue;
+                if (GenerateDisplayType(displayType, lib))
+                    data[kvp.Key] = displayType;
             }
         }
 
@@ -906,6 +977,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
 
             GenerateEventTypes(data.EventTypes, lib);
             GenerateSourceTypes(data.SourceTypes, lib);
+            GenerateDisplayTypes(data.DisplayTypes, lib);
             GenerateMapperTypes(data.MapperTypes, lib);
             GenerateFilterTypes(data.FilterTypes, lib);
             GenerateVariableTypes(data.VariableTypes, lib);

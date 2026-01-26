@@ -2,6 +2,7 @@
 using ENSACO.RxPlatform.Host;
 using ENSACO.RxPlatform.Modbus;
 using ENSACO.RxPlatform.Model.Modbus;
+using ENSACO.RxPlatform.OPCUA;
 using ENSACO.RxPlatform.Runtime;
 using System.Reflection;
 
@@ -38,8 +39,12 @@ namespace DynamicAssembly
             masterStack.TcpPort.Timeouts.ReceiveTimeout = 60000;
             await ModbusUtility.DownloadStack(masterStack, "Test1Master", "ports", Assembly.GetExecutingAssembly());
 
-      //      System.Diagnostics.Debugger.Launch();
 
+            var opcServerStack = OPCUAUtility.CreateOPCUAServer(
+                50001,
+                new string[] { "OPC1", "OPC2" });
+
+            await OPCUAUtility.DownloadStack(opcServerStack, "Opc1", "ports", Assembly.GetExecutingAssembly());
 
             other1 = await RxPlatformObjectRuntime.CreateInstance<SubNamespace.SomeOtherDynamicObject>(
                 new SubNamespace.SomeOtherDynamicObject
@@ -65,8 +70,13 @@ namespace DynamicAssembly
                     },
                     OtherDynamicObj = other2,
                     ModbusSlave = stack.Slaves[1],
-                    ModbusMaster = masterStack.Slaves[0]
-                }, "TestObj2");
+                    ModbusMaster = masterStack.Slaves[0],
+                    OPCServer = opcServerStack.Servers[0],
+                    OPCServer2 = opcServerStack.Servers[1]
+
+                }, "TestObj2", "subfolder"
+                , new ENSACO.RxPlatform.Model.RxNodeId(new Guid("74F3D1F0-D0D1-4105-8ED2-DDE7CEF2C4C9"), 999));
+
 
             
 

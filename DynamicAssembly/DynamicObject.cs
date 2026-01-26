@@ -33,7 +33,12 @@ namespace DynamicAssembly
         public virtual event Action<string?>? OnObjectProp2Change;
         public virtual bool? ObjectProp3 { get; protected set; } = true;
 
-        public virtual byte? ObjectProp4 { get; } = 55;
+        public virtual Task<bool> WriteObjectProp4(byte newValue)
+        {
+            return Task.FromResult(false);
+        }
+
+        public virtual byte? ObjectProp4 { get; set;  } = 55;
 
         public virtual event ChangedObjProp4? OnObjectProp4Change;
 
@@ -79,8 +84,11 @@ namespace DynamicAssembly
                             //SubData = temp;
                             if (!await WriteSubData(temp))
                                 Console.WriteLine("DynamicObject: WriteSubData failed.");
-                            else
-                                Console.WriteLine(JsonSerializer.Serialize(this, options));
+                            //else
+                            //    Console.WriteLine(JsonSerializer.Serialize(this, options));
+
+                            if(!await WriteObjectProp4((byte)(i + 65)))
+                                Console.WriteLine("DynamicObject: WriteObjectProp4 failed.");
                             await Task.Delay(1000);
                         }
 

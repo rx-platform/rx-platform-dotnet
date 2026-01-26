@@ -127,7 +127,7 @@ public class {typeName} : {typeNamespace}.{typeName}
         {{
             if(value != null)
             {{
-                WriteProperty({index}, value);
+                __WriteProperty({index}, value);
             }}
         }}
     }}
@@ -141,7 +141,7 @@ public class {typeName} : {typeNamespace}.{typeName}
                 if (value != null)
                 {{
                     string strVal = JsonSerializer.Serialize<{prop.codeType}>(value);
-                    WriteProperty({index}, strVal);
+                    __WriteProperty({index}, strVal);
                 }}
         }}
     }}
@@ -159,7 +159,7 @@ public class {typeName} : {typeNamespace}.{typeName}
                     stream.Append($@"
     public async override Task<bool> Write{prop.name}({prop.codeType} value)
     {{
-        return await WriteProperty({index}, value);
+        return await __WriteProperty({index}, value);
     }}
 ");
                 }
@@ -201,7 +201,7 @@ public class {typeName} : {typeNamespace}.{typeName}
                 if (value != null)
                 {{
                     string strVal = value.Path;
-                    WriteProperty({index}, strVal);
+                    __WriteProperty({index}, strVal);
                 }}
         }}
     }}
@@ -629,6 +629,20 @@ public class {typeName} : {typeNamespace}.{typeName}
             GenerateTypeFooter(stream);
         }
 
+        internal static void GenerateDisplayTypeSourceCode(PlatformTypeBuildMeta<RxPlatformDisplayType> type, StringBuilder stream)
+        {
+
+            string typeName = type.name;
+            if (type.codeNamespace == null)
+                return;
+
+            GenerateTypeHeader(typeName, type.codeNamespace, stream);
+            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream);
+            GenerateTypeStructsCode(type.definedStructs, stream);
+
+            GenerateTypeFooter(stream);
+        }
+
         internal static void GenerateObjectTypeSourceCode(PlatformTypeBuildMeta<RxPlatformObjectType> type, StringBuilder stream)
         {
             string typeName = type.name;
@@ -642,11 +656,15 @@ public class {typeName} : {typeNamespace}.{typeName}
             if (type.definedMethods.Length > 0)
             {
                 string asyncString = "";
+                string resultPrefix = "Task.FromResult(";
+                string resultSuffix = ")";
                 foreach (var method in type.definedMethods)
                 {
                     if (method.isAsync)
                     {
                         asyncString = "async";
+                        resultPrefix = "";
+                        resultSuffix = "";
                         break;
                     }
                 }
@@ -664,7 +682,8 @@ public class {typeName} : {typeNamespace}.{typeName}
                     string awaitString = "";
                     if (method.isAsync)
                         awaitString = "await";
-                    if (string.IsNullOrEmpty(method.argumentType) && method.resultType == "void")
+                    bool isVoid = method.resultType == "void" || method.resultType == typeof(Task).FullName;
+                    if (string.IsNullOrEmpty(method.argumentType) && isVoid)
                     {
                         //////////////////////////////////////////////////////////////////////////
                         /// void, void method
@@ -673,12 +692,12 @@ public class {typeName} : {typeNamespace}.{typeName}
                 case ""{method.name}"":
                     {{
                         {awaitString} {method.name}();
-                        return Task.FromResult(""{{ }}"");
+                        return {resultPrefix}""{{ }}""{resultSuffix};
                     }}
                     break;
 ");
                     }
-                    else if (!string.IsNullOrEmpty(method.argumentType) && method.resultType == "void")
+                    else if (!string.IsNullOrEmpty(method.argumentType) && isVoid)
                     {
                         //////////////////////////////////////////////////////////////////////////
                         /// non-void, void method
@@ -688,13 +707,13 @@ public class {typeName} : {typeNamespace}.{typeName}
                 case ""{method.name}"":
                     {{
                         {method.argumentType}? argObj = JsonSerializer.Deserialize<{method.argumentType}>(args, __jsonContext);
-                        var result = {awaitString} {method.name}(argObj);
-                        return  Task.FromResult(""{{ }}"");
+                        {awaitString} {method.name}(argObj);
+                        return {resultPrefix}""{{ }}""{resultSuffix};
                     }}
                     break;
 ");
                     }
-                    else if (string.IsNullOrEmpty(method.argumentType) && method.resultType != "void")
+                    else if (string.IsNullOrEmpty(method.argumentType) && !isVoid)
                     {
                         //////////////////////////////////////////////////////////////////////////
                         /// void, non-void method
@@ -711,7 +730,7 @@ public class {typeName} : {typeNamespace}.{typeName}
                         }}
                         else
                         {{
-                            return  Task.FromResult(JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext));
+                            return {resultPrefix}JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
                         }}
                     }}
                     break;
@@ -723,14 +742,14 @@ public class {typeName} : {typeNamespace}.{typeName}
                 case ""{method.name}"":
                     {{
                         var result = {awaitString} {method.name}();
-                        return  Task.FromResult(JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext));
+                        return {resultPrefix}JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
                     }}
                     break;
 ");
                         }
                     }
 
-                    else if (!string.IsNullOrEmpty(method.argumentType) && method.resultType != "void")
+                    else if (!string.IsNullOrEmpty(method.argumentType) && !isVoid)
                     {
                         //////////////////////////////////////////////////////////////////////////
                         /// non-void, non-void method
@@ -746,11 +765,11 @@ public class {typeName} : {typeNamespace}.{typeName}
                         var result = {awaitString} {method.name}(argObj);
                         if(result == null)
                         {{
-                            return Task.FromResult(""{{ }}"");
+                            return {resultPrefix}""{{ }}""{resultSuffix};
                         }}
                         else
                         {{
-                            return Task.FromResult(JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext));
+                            return {resultPrefix}JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
                         }}
                     }}
                     break;
@@ -762,7 +781,7 @@ public class {typeName} : {typeNamespace}.{typeName}
                 case ""{method.name}"":
                     {{
                         var result = {awaitString} {method.name}();
-                        return  Task.FromResult(JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext));
+                        return {resultPrefix}(JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
                     }}
                     break;
 ");

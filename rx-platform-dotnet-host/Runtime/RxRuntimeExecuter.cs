@@ -198,6 +198,42 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                         }
                         break;
                     }
+
+                case rx_item_type.rx_display_type:
+                    {
+                        PlatformRuntimeData evt;
+                        lock (RxMetaData.Instance.TypesLock)
+                        {
+                            if (RxMetaData.Instance.DisplayRuntimes.NativeDict.TryGetValue(whose, out evt))
+                            {
+                                if (evt.objectRuntime.IsAllocated)
+                                {
+                                    RxPlatformDisplayRuntime? objectRuntime = evt.objectRuntime.Target as RxPlatformDisplayRuntime;
+                                    if (objectRuntime != null)
+                                    {
+                                        id = evt.nodeId;
+                                        started = evt.startedMethod;
+                                        if (RuntimeConstructAlgorithms.TryGetConstructionData(evt.nodeId, evt.path, out var constructData) && constructData != null)
+                                        {
+                                            foreach (var child in constructData.structs)
+                                            {
+                                                if (child.Value._nativePtr != nint.Zero)
+                                                {
+                                                    var childRuntime = GetRuntime(child.Value.type, child.Value._nativePtr);
+                                                    if (childRuntime != null)
+                                                    {
+                                                        childrenValues[child.Key] = childRuntime;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        return objectRuntime;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
                 default:
                     break;
             }
@@ -305,6 +341,25 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                         }
                         break;
                     }
+                case rx_item_type.rx_display_type:
+                    {
+                        PlatformRuntimeData evt;
+                        lock (RxMetaData.Instance.TypesLock)
+                        {
+                            if (RxMetaData.Instance.DisplayRuntimes.NativeDict.TryGetValue(whose, out evt))
+                            {
+                                if (evt.objectRuntime.IsAllocated)
+                                {
+                                    RxPlatformDisplayRuntime? objectRuntime = evt.objectRuntime.Target as RxPlatformDisplayRuntime;
+                                    if (objectRuntime != null)
+                                    {
+                                        return objectRuntime;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
                 default:
                     break;
             }
@@ -351,7 +406,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
         {
             if (PlatformHostMain.api.WriteValue == null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.LibraryWrite", 100
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.LibraryWrite", 100
                 , $"Write value function is not available. Cannot write value at index {index}.");
                 return false;
             }
@@ -362,7 +417,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             var result = await task.Task;
             if (result != null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.LibraryWrite", 200
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.LibraryWrite", 200
                 , $"Error writing runtime Object with ptr 0x{whose.ToString("X")}, at index {index}: {result.Message}");
                 return false;
             }
@@ -372,7 +427,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
         {
             if (PlatformHostMain.api.WriteValue == null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.LibraryWrite", 100
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.LibraryWrite", 100
                 , $"Write value function is not available. Cannot write value at index {index}.");
                 return false;
             }
@@ -383,7 +438,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             var result = await task.Task;
             if (result != null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.LibraryWrite", 200
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.LibraryWrite", 200
                 , $"Error writing runtime Object with ptr 0x{whose.ToString("X")}, at index {index}: {result.Message}");
                 return false;
             }
@@ -415,19 +470,28 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
             Task.Run(() =>
             {
-                Action? started = null;
-                Dictionary<string, object> childrenValues = new Dictionary<string, object>();
-                RxNodeId id = RxNodeId.NullId;
-                var obj = GetRuntime(type, whose, ref started, ref childrenValues, ref id);
-                if (obj != null)
+                try
                 {
-                    if(!id.IsNull())
+                    Action? started = null;
+                    Dictionary<string, object> childrenValues = new Dictionary<string, object>();
+                    RxNodeId id = RxNodeId.NullId;
+                    var obj = GetRuntime(type, whose, ref started, ref childrenValues, ref id);
+                    if (obj != null)
                     {
-                        RuntimeConstructAlgorithms.RemoveFromConstructionData(id);
+                        if (!id.IsNull())
+                        {
+                            RuntimeConstructAlgorithms.RemoveFromConstructionData(id);
+                        }
+                        obj.__rxInitialValuesCallback(vals, childrenValues);
+                        if (started != null)
+                            started();
                     }
-                    obj.__rxInitialValuesCallback(vals, childrenValues);
-                    if (started != null)
-                        started();
+                }
+                catch (Exception ex)
+                {
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.InitialRuntimeValues", 200
+                        , $"Error sending initial values for runtime object 0x{whose.ToString("X")}: {ex.Message}");
+
                 }
             });
         }
@@ -465,7 +529,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 }
                 catch (Exception ex)
                 {
-                    RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.ExecuteMethod", 200
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.ExecuteMethod", 200
                         , $"Error executing method {methodStr}: {ex.Message}");
 
 

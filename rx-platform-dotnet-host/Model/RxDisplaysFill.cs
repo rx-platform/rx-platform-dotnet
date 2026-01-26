@@ -10,34 +10,34 @@ using System.Runtime.InteropServices;
 namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
 {
 
-    internal class RxSourcesFill : IRxMetaAlgorithm
+    internal class RxDisplaysFill : IRxMetaAlgorithm
     {
-        private List<RxSourceDataItem>? GetItems(PropertyInfo[] properties, object instance)
+        private List<RxDisplayDataItem>? GetItems(PropertyInfo[] properties, object instance)
         {
-            var items = new List<RxSourceDataItem>();
+            var items = new List<RxDisplayDataItem>();
             foreach (var prop in properties)
             {
 
                 Type? propType = ReflectionHelpers.GetNullableType(prop);
-                if (propType == null)
+                if (propType != null)
                 {
-                    propType = prop.PropertyType;
+                    continue;// no null-able types
                 }
                 Type? enumType = ReflectionHelpers.GetEnumerableElement(prop.PropertyType);
                 if (enumType != null)
                 {
-                    propType = enumType;
+                    continue;// no enumerable types
                 }
-                bool readOnly = !prop.CanWrite;
-                if (prop.SetMethod != null && prop.SetMethod.IsPublic)
+                if (prop.CanWrite)
                 {
-                    readOnly = false;
+                    continue;// no read/write properties
                 }
+                propType = prop.PropertyType;
                 if (propType == null)
                 {
                     continue;
                 }
-                var attr = propType.GetCustomAttribute<RxPlatformSourceType>(false);
+                var attr = propType.GetCustomAttribute<RxPlatformDisplayType>(false);
                 if (attr != null)
                 {
                     string? targetId = null;
@@ -54,14 +54,13 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     }
                     if (!string.IsNullOrEmpty(targetId))
                     {
-                        RxSourceDataItem item = new RxSourceDataItem
+                        RxDisplayDataItem item = new RxDisplayDataItem
                         {
                             name = prop.Name,
                             target = new RXHostReferenceId { id = targetId },
                             sim = true,
                             proc = true,
-                            input = true,
-                            output = !readOnly
+                            input = true
                         };
                         items.Add(item);
                     }
@@ -94,14 +93,14 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     objType.valid = false;
                     continue;
                 }
-                var props = ReflectionHelpers.GetSourcePropertyInfos(objType.type);
+                var props = ReflectionHelpers.GetDisplayPropertyInfos(objType.type);
                 var items = GetItems(props, instance);
                 if(items==null)
                 {
                     objType.valid = false;
                     continue;
                 }
-                objType.sources = items.ToArray();
+                objType.displays = items.ToArray();
                 data[kvp.Key] = objType;
             }
         }

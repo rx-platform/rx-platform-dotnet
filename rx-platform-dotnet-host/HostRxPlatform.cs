@@ -1,6 +1,6 @@
 ﻿namespace ENSACO.RxPlatform.Hosting.Internal
 {
-
+    
     public enum rx_item_type : byte
     {
         rx_directory = 0,
@@ -68,7 +68,7 @@
                 PlatformHostMain.api.WriteLog((int)log_event_type.info, GetPluginName(), source, severity, "", message);
             }
         }
-        public void WriteLogWarining(string source, ushort severity, string message)
+        public void WriteLogError(string source, ushort severity, string message)
         {
             if (PlatformHostMain.api.WriteLog != null)
             {

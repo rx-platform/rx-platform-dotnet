@@ -46,15 +46,12 @@ namespace ENSACO.RxPlatform.Hosting
         };
         static Assembly? CurrentDomain_AssemblyResolve(object? sender, ResolveEventArgs args)
         {
-            // This callback is executed when an assembly cannot be resolved
-            Console.WriteLine($"Attempting to resolve assembly: {args.Name}");
 
             // Example: Custom logic to find and load the assembly
             // In a real scenario, you might load from a specific path, a database, etc.
             if (args.Name.StartsWith("NonExistentAssembly"))
             {
-                Console.WriteLine("Custom logic: Attempting to provide a dummy assembly for demonstration.");
-                // In a real application, you might load a specific DLL here
+                 // In a real application, you might load a specific DLL here
                 // For this example, we'll return null to let the original error propagate
                 return null;
             }
@@ -81,11 +78,12 @@ namespace ENSACO.RxPlatform.Hosting
         public unsafe static rx_result_struct InitPlatformHosting(IntPtr apiPtr,
             uint host_stream_version,
             uint* plugin_stream_version,
-            IntPtr assemblies, uint count, string_value_struct* version)
+            IntPtr assemblies, uint count, string_value_struct* version, int options)
         {
-
-        //    System.Diagnostics.Debugger.Launch();
-
+            if((options&0x1)!=0)
+            {
+                System.Diagnostics.Debugger.Launch();
+            }
             dotnet_loading_api_t napi = Marshal.PtrToStructure<dotnet_loading_api_t>(apiPtr);
             ENSACO.RxPlatform.Host.PlatformLibraryInfo info = new ENSACO.RxPlatform.Host.PlatformLibraryInfo
             {
@@ -200,20 +198,20 @@ namespace ENSACO.RxPlatform.Hosting
                     catch (TargetInvocationException ex)
                     {
                         if (ex.InnerException != null)
-                            RxPlatformObject.Instance.WriteLogWarining("PlatformHostMain.StartPlatformHosting", 101, $".NET Core failed to start library  {ex.InnerException.Message}");
+                            RxPlatformObject.Instance.WriteLogError("PlatformHostMain.StartPlatformHosting", 101, $".NET Core failed to start library  {ex.InnerException.Message}");
                         else
-                            RxPlatformObject.Instance.WriteLogWarining("PlatformHostMain.StartPlatformHosting", 101, $".NET Core failed to start library  {ex.Message}");
+                            RxPlatformObject.Instance.WriteLogError("PlatformHostMain.StartPlatformHosting", 101, $".NET Core failed to start library  {ex.Message}");
                     }
                     catch (AggregateException ex)
                     {
                         if (ex.InnerException != null)
-                            RxPlatformObject.Instance.WriteLogWarining("PlatformHostMain.StartPlatformHosting", 101, $".NET Core failed to start library  {ex.InnerException.Message}");
+                            RxPlatformObject.Instance.WriteLogError("PlatformHostMain.StartPlatformHosting", 101, $".NET Core failed to start library  {ex.InnerException.Message}");
                         else
-                            RxPlatformObject.Instance.WriteLogWarining("PlatformHostMain.StartPlatformHosting", 101, $".NET Core failed to start library  {ex.Message}");
+                            RxPlatformObject.Instance.WriteLogError("PlatformHostMain.StartPlatformHosting", 101, $".NET Core failed to start library  {ex.Message}");
                     }
                     catch (Exception ex)
                     {
-                        RxPlatformObject.Instance.WriteLogWarining("PlatformHostMain.StartPlatformHosting", 200, $".NET Core failed to start library {plugin.GetPluginName()}:{ex.Message}");
+                        RxPlatformObject.Instance.WriteLogError("PlatformHostMain.StartPlatformHosting", 200, $".NET Core failed to start library {plugin.GetPluginName()}:{ex.Message}");
                     }
                 });
             }
@@ -246,7 +244,7 @@ namespace ENSACO.RxPlatform.Hosting
             }
             catch (Exception ex)
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformHostMain.BindObject", 200, $".NET Core failed to bind object {nodeId.ToString()}:{ex.Message}");
+                RxPlatformObject.Instance.WriteLogError("PlatformHostMain.BindObject", 200, $".NET Core failed to bind object {nodeId.ToString()}:{ex.Message}");
             }
         }
         [UnmanagedCallersOnly()]
@@ -267,7 +265,7 @@ namespace ENSACO.RxPlatform.Hosting
             }
             catch (Exception ex)
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformHostMain.UnbindObject", 200, $".NET Core failed to unbind object {nodeId.ToString()}:{ex.Message}");
+                RxPlatformObject.Instance.WriteLogError("PlatformHostMain.UnbindObject", 200, $".NET Core failed to unbind object {nodeId.ToString()}:{ex.Message}");
             }
         }
 
@@ -304,7 +302,7 @@ namespace ENSACO.RxPlatform.Hosting
                                 }
                                 catch (Exception ex)
                                 {
-                                    RxPlatformObject.Instance.WriteLogWarining("PlatformHostMain.StartPlatformHosting", 200, $".NET Core failed to start library {plugin.GetPluginName()}:{ex.Message}");
+                                    RxPlatformObject.Instance.WriteLogError("PlatformHostMain.StartPlatformHosting", 200, $".NET Core failed to start library {plugin.GetPluginName()}:{ex.Message}");
                                 }
                             });
                         }

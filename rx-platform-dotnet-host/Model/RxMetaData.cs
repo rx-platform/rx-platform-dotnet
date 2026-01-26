@@ -62,6 +62,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal IntPtr nativeRuntimePtr;
         internal Action? startedMethod;
         internal Action? stoppedMethod;
+        internal Dictionary<string, Func<Task<HttpResponseMessage>, HttpRequestMessage>[]>? handleRequests;
         internal SourceWriteMethods sourceWriteMethods;
     }
     struct RuntimeConstructionData
@@ -70,6 +71,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal MethodInfo? startMethod;
         internal MethodInfo? stopMethod;
         internal byte[]? initialValues;
+        internal MethodInfo[]? handleRequests;
         internal SourceWriteMethodData[]? sourceWriteMethods;
     }
 
@@ -103,6 +105,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal RxFilterDataItem[] filters;
         internal RxMapperDataItem[] mappers;
         internal RxSourceDataItem[] sources;
+        internal RxDisplayDataItem[] displays;
         internal T? attribute;
         internal string path;
         internal string name;
@@ -126,6 +129,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal string? initialValues;
         internal string? relationValues;
         internal string? codeInfo;
+        internal MethodInfo[]? requestHandlingMethods;
         internal SourceWriteMethodData[]? sourceWriteMethods;
     }
     struct PlatformDataTypeBuildMeta
@@ -168,6 +172,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
             = new Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformEventType>>();
         internal Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformFilterType>> FilterTypes
             = new Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformFilterType>>();
+        internal Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformDisplayType>> DisplayTypes
+            = new Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformDisplayType>>();
 
         internal Dictionary<RxNodeId, PlatformDataTypeBuildMeta> DataTypes
             = new Dictionary<RxNodeId, PlatformDataTypeBuildMeta>();
@@ -239,6 +245,11 @@ namespace ENSACO.RxPlatform.Hosting.Model
             = new Dictionary<RxNodeId, PlatformTypeData<RxPlatformEventType>>();
         internal PlatformTypeRuntime EventRuntimes
             = new   PlatformTypeRuntime();
+
+        internal Dictionary<RxNodeId, PlatformTypeData<RxPlatformDisplayType>> DisplayTypes
+            = new Dictionary<RxNodeId, PlatformTypeData<RxPlatformDisplayType>>();
+        internal PlatformTypeRuntime DisplayRuntimes
+            = new PlatformTypeRuntime();
 
         internal Dictionary<RxNodeId, PlatformTypeData<RxPlatformFilterType>> FilterTypes
             = new Dictionary<RxNodeId, PlatformTypeData<RxPlatformFilterType>>();

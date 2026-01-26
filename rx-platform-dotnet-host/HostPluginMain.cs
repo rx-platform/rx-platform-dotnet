@@ -93,7 +93,7 @@ namespace ENSACO.RxPlatform.Hosting
                         {
                             if (temp != null)
                             {
-                                RxPlatformObject.Instance.WriteLogWarining("HostPluginMain.InitializeAssembly", 100, $"Multiple RxPlatformLibrary attributes found in assembly {Path.GetFileName(asm.GetName().Name)}. Library will not be initialized!");
+                                RxPlatformObject.Instance.WriteLogError("HostPluginMain.InitializeAssembly", 100, $"Multiple RxPlatformLibrary attributes found in assembly {Path.GetFileName(asm.GetName().Name)}. Library will not be initialized!");
                                 return false;
                             }
                             temp = asm;
@@ -201,25 +201,25 @@ namespace ENSACO.RxPlatform.Hosting
                 catch(TargetInvocationException ex)
                 {
                     if(ex.InnerException!=null)
-                        RxPlatformObject.Instance.WriteLogWarining("HostedPlatformLibrary.StartHosting", 101, $"Exception in Start method: {ex.InnerException.Message}");
+                        RxPlatformObject.Instance.WriteLogError("HostedPlatformLibrary.StartHosting", 101, $"Exception in Start method: {ex.InnerException.Message}");
                     else
-                        RxPlatformObject.Instance.WriteLogWarining("HostedPlatformLibrary.StartHosting", 101, $"Exception in Start method: {ex.Message}");
+                        RxPlatformObject.Instance.WriteLogError("HostedPlatformLibrary.StartHosting", 101, $"Exception in Start method: {ex.Message}");
                 }
                 catch (AggregateException ex)
                 {
                     if(ex.InnerException!=null)
-                        RxPlatformObject.Instance.WriteLogWarining("HostedPlatformLibrary.StartHosting", 101, $"Exception in Start method: {ex.InnerException.Message}");
+                        RxPlatformObject.Instance.WriteLogError("HostedPlatformLibrary.StartHosting", 101, $"Exception in Start method: {ex.InnerException.Message}");
                     else
-                        RxPlatformObject.Instance.WriteLogWarining("HostedPlatformLibrary.StartHosting", 101, $"Exception in Start method: {ex.Message}");
+                        RxPlatformObject.Instance.WriteLogError("HostedPlatformLibrary.StartHosting", 101, $"Exception in Start method: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
-                    RxPlatformObject.Instance.WriteLogWarining("HostedPlatformLibrary.StartHosting", 101, $"Exception in Start method: {ex.Message}");
+                    RxPlatformObject.Instance.WriteLogError("HostedPlatformLibrary.StartHosting", 101, $"Exception in Start method: {ex.Message}");
                 }
             }
             else
             {
-                RxPlatformObject.Instance.WriteLogWarining("HostedPlatformLibrary.StartHosting", 101, "Library does not have a Start method!");
+                RxPlatformObject.Instance.WriteLogError("HostedPlatformLibrary.StartHosting", 101, "Library does not have a Start method!");
             }
         }
 

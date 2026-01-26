@@ -5,7 +5,7 @@ namespace ENSACO.RxPlatform.Runtime
 {
     public class RxPlatformMapperRuntime : RxPlatformRuntimeBase
     {
-        override internal byte RxType { get { return 14;/*rx_mapper*/ } }
+        override internal byte RxType { get { return 14;/*rx_mapper_type*/ } }
 
     }
 }

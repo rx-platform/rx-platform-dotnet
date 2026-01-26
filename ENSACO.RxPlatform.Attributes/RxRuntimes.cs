@@ -161,15 +161,8 @@ namespace ENSACO.RxPlatform.Runtime
                 var propInfo = this.GetType().GetProperty(value.Item1);
                 if (propInfo != null && propInfo.CanWrite)
                 {
-                    try
-                    {
-                        var underlyingType = Nullable.GetUnderlyingType(propInfo.PropertyType);
-                        propInfo.SetValue(this, Convert.ChangeType(value.Item2, underlyingType ?? propInfo.PropertyType));
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error setting initial value for property {value.Item1}: {ex.Message}");
-                    }
+                    var underlyingType = Nullable.GetUnderlyingType(propInfo.PropertyType);
+                    propInfo.SetValue(this, Convert.ChangeType(value.Item2, underlyingType ?? propInfo.PropertyType));
                 }
             }
             string fieldName;
@@ -179,14 +172,7 @@ namespace ENSACO.RxPlatform.Runtime
                 var fieldInfo = this.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
                 if (fieldInfo != null)
                 {
-                    try
-                    {
-                        fieldInfo.SetValue(this, value.Value);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error setting initial value for property {value.Key}: {ex.Message}");
-                    }
+                    fieldInfo.SetValue(this, value.Value);
                 }
             }
         }
@@ -257,65 +243,65 @@ namespace ENSACO.RxPlatform.Runtime
             }
         }
 
-        protected Task<bool> WriteProperty(int index, bool value)
+        protected Task<bool> __WriteProperty(int index, bool value)
         {
             return WriteBoolProperty(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, sbyte value)
+        protected Task<bool> __WriteProperty(int index, sbyte value)
         {
             return WriteInt8Property(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, short value)
+        protected Task<bool> __WriteProperty(int index, short value)
         {
             return WriteInt16Property(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, int value)
+        protected Task<bool> __WriteProperty(int index, int value)
         {
             return WriteInt32Property(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, long value)
+        protected Task<bool> __WriteProperty(int index, long value)
         {
             return WriteInt64Property(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, byte value)
+        protected Task<bool> __WriteProperty(int index, byte value)
         {
             return WriteUInt8Property(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, ushort value)
+        protected Task<bool> __WriteProperty(int index, ushort value)
         {
             return WriteUInt16Property(this, index, value);
-        }        protected Task<bool> WriteProperty(int index, uint value)
+        }        protected Task<bool> __WriteProperty(int index, uint value)
         {
             return WriteUInt32Property(this, index, value);
-        }        protected Task<bool> WriteProperty(int index, ulong value)
+        }        protected Task<bool> __WriteProperty(int index, ulong value)
         {
             return WriteUInt64Property(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, float value)
+        protected Task<bool> __WriteProperty(int index, float value)
         {
             return WriteFloatProperty(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, double value)
+        protected Task<bool> __WriteProperty(int index, double value)
         {
             return WriteDoubleProperty(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, string value)
+        protected Task<bool> __WriteProperty(int index, string value)
         {
             return WriteStringProperty(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, DateTime value)
+        protected Task<bool> __WriteProperty(int index, DateTime value)
         {
             return WriteDateTimeProperty(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, byte[] value)
+        protected Task<bool> __WriteProperty(int index, byte[] value)
         {
             return WriteBytesProperty(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, Guid value)
+        protected Task<bool> __WriteProperty(int index, Guid value)
         {
             return WriteUuidProperty(this, index, value);
         }
-        protected Task<bool> WriteProperty(int index, object value)
+        protected Task<bool> __WriteProperty(int index, object value)
         {
             return WriteObjectProperty(this, index, value);
         }
@@ -575,12 +561,18 @@ namespace ENSACO.RxPlatform.Runtime
 
     public class RxPlatformStructRuntime : RxPlatformRuntimeBase
     {
-        override internal byte RxType { get { return 9;/*rx_struct*/ } }    
+        override internal byte RxType { get { return 9;/*rx_struct_type*/ } }
 
     }
     public class RxPlatformEventRuntime : RxPlatformRuntimeBase
     {
-        override internal byte RxType { get { return 13;/*rx_event*/ } }
+        override internal byte RxType { get { return 13;/*rx_event_type*/ } }
+
+    }
+    
+    public class RxPlatformDisplayRuntime : RxPlatformRuntimeBase
+    {
+        override internal byte RxType { get { return 14;/*rx_display_type*/ } }
 
     }
 }

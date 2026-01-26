@@ -6,7 +6,7 @@ namespace ENSACO.RxPlatform.Runtime
 
     public class RxPlatformSourceRuntime : RxPlatformRuntimeBase
     {
-        override internal byte RxType { get { return 11;/*rx_source*/ } }
+        override internal byte RxType { get { return 11;/*rx_source_type*/ } }
 
 
         protected void SourceChanged(bool value)

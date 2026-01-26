@@ -21,8 +21,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                 Type? paramType = null;
                 Type? resultType = null;
 
-                bool isAsync = ReflectionHelpers.IsAsyncMethod(method);
-
+                bool isAsync = false;
                 string? argTypeName = null;
                 bool argIsNullable = false;
                 bool argIsJson = false;
@@ -72,14 +71,22 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                 resultType = method.ReturnType;
                 if (resultType != null)
                 {
+                    var type = ReflectionHelpers.GetTaskType(resultType);
+                    if(type!= null)
+                    {
+                        resultType = type;
+                        isAsync = true;
+
+                    }
                     if (resultType == typeof(void))
                     {
-                        resultTypeName = "void";// void type
+                        resultTypeName = isAsync ? typeof(Task).FullName : "void";// void type
                         resultIsNullable = false;
                         resultIsJson = false;
                     }
                     else
                     {
+
                         Type? resType = ReflectionHelpers.GetNullableType(method.ReturnParameter);
                         if (resType != null)
                         {
@@ -94,6 +101,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                             resultType = method.ReturnType;
                         }
                         resultIsJson = resultType.GetCustomAttribute<RxPlatformDataType>(false) != null;
+
                     }
                 }
                 if (paramType != null && resultType != null)
@@ -183,7 +191,8 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                         jsonArgument = argIsJson,
                         isNullAbleResult = resultIsNullable,
                         resultType = resultTypeName,
-                        
+                        isAsync = isAsync
+
 
                         //isAsync = ReflectionHelpers.IsAsyncMethod(method),
                     };
@@ -231,14 +240,6 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
         }
         public void FillTypes(PlatformTypeBuildData data)
         {
-
-            FillTypes(data.EventTypes);
-            FillTypes(data.SourceTypes);
-            FillTypes(data.MapperTypes);
-            FillTypes(data.FilterTypes);
-            FillTypes(data.VariableTypes);
-            FillTypes(data.StructTypes);
-
             FillTypes(data.ObjectTypes);
             FillTypes(data.PortTypes);
             FillTypes(data.DomainTypes);

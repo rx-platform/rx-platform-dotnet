@@ -154,13 +154,6 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
         public void FillTypes(PlatformTypeBuildData data)
         {
 
-            FillTypes(data.EventTypes);
-            FillTypes(data.SourceTypes);
-            FillTypes(data.MapperTypes);
-            FillTypes(data.FilterTypes);
-            FillTypes(data.VariableTypes);
-            FillTypes(data.StructTypes);
-
             FillTypes(data.ObjectTypes);
             FillTypes(data.PortTypes);
             FillTypes(data.DomainTypes);

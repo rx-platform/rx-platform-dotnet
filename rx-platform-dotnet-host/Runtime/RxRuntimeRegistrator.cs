@@ -32,7 +32,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 }
                 else
                 {
-                    RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.InternalLibraryCreateRuntime", 120
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.InternalLibraryCreateRuntime", 120
                         , $"Failed to create Runtime {prototype.GetType().FullName} with name {name}, path {path}:{result.Message}");
                 }
             }
@@ -55,7 +55,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
             if (lib == null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.CreateRuntime", 10
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.CreateRuntime", 10
                     , $"Failed to create Runtime for object {prototype.GetType().FullName} because calling assembly is not registered.");
                 return false;
             }
@@ -73,7 +73,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 }
                 if (typeData == null)
                 {
-                    RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.CreateRuntime", 10
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.CreateRuntime", 10
                     , $"Failed to create Runtime for object {prototype.GetType().FullName} because its type is not registered.");
                     return false;
                 }
@@ -141,7 +141,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 }
                 if (typeData == null)
                 {
-                    RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.CreateRuntime", 10
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.CreateRuntime", 10
                     , $"Failed to create Runtime for object {prototype.GetType().FullName} because its type is not registered.");
                     return false;
                 }
@@ -191,14 +191,14 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             {
                 if (!RxMetaData.Instance.HostedLibraries.TryGetValue(assembly, out lib))
                 {
-                    RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.CreateRuntime", 10
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.CreateRuntime", 10
                         , $"Failed to create Runtime for object {prototype.GetType().FullName} because calling assembly {assembly.FullName} is not registered.");
                     return false;
                 }
             }
             if (lib == null)
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.CreateRuntime", 10
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.CreateRuntime", 10
                     , $"Failed to create Runtime for object {prototype.GetType().FullName} because calling assembly {assembly.FullName} is not registered.");
                 return false;
             }
@@ -263,7 +263,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                         }
                         else
                         {
-                            RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.UnregisterRuntimes", 110
+                            RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.UnregisterRuntimes", 110
                                 , $"Failed to delete Runtime object with id {inst.id} at path {inst.path}:{result.Message}");
                         }
                     }
@@ -351,13 +351,13 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 }
                 else
                 {
-                    RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 110
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
                         , $"Failed to bind native object pointer 0x{nativePtr.ToString("X")} unable to create managed object with type id {typeId}.");
                 }
             }
             else
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 110
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
                     , $"Failed to bind native object pointer 0x{nativePtr.ToString("X")} because no managed object is registered with id {typeId}.");
 
             }
@@ -423,13 +423,13 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 }
                 else
                 {
-                    RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 110
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
                         , $"Failed to bind native struct pointer 0x{nativePtr.ToString("X")} unable to create managed object with type id {typeId}.");
                 }
             }
             else
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 110
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
                     , $"Failed to bind native struct pointer 0x{nativePtr.ToString("X")} because no managed object is registered with id {typeId}.");
 
             }
@@ -533,6 +533,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                         startedMethod = startedMethod,
                         stoppedMethod = stoppedMethod,
                         sourceWriteMethods = sourceWrites,
+                        handleRequests = null,
                         path = path
                     };
 
@@ -547,13 +548,13 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 }
                 else
                 {
-                    RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 110
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
                         , $"Failed to bind native source pointer 0x{nativePtr.ToString("X")} unable to create managed object with type id {typeId}.");
                 }
             }
             else
             {
-                RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 110
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
                     , $"Failed to bind native source pointer 0x{nativePtr.ToString("X")} because no managed object is registered with id {typeId}.");
 
             }
@@ -573,7 +574,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                     break;
                 default:
                     {
-                        RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 120
+                        RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 120
                             , $"Failed to bind native pointer 0x{nativePtr.ToString("X")} because type {type} is not supported.");
                     }
                     break;
@@ -615,7 +616,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                         }
                         else
                         {
-                            RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 110
+                            RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
                                 , $"Failed to unbind native object pointer 0x{nativePtr.ToString("X")} unable to find managed object with pointer.");
                         }
                     }
@@ -652,7 +653,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                         }
                         else
                         {
-                            RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 110
+                            RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
                                 , $"Failed to unbind native object pointer 0x{nativePtr.ToString("X")} unable to find managed object with pointer.");
                         }
                     }
@@ -690,14 +691,14 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                         }
                         else
                         {
-                            RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 110
+                            RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
                                 , $"Failed to unbind native object pointer 0x{nativePtr.ToString("X")} unable to find managed object with pointer.");
                         }
                     }
                     break;
                 default:
                     {
-                        RxPlatformObject.Instance.WriteLogWarining("PlatformRuntimeTypes.BindObject", 120
+                        RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 120
                             , $"Failed to bind native object pointer 0x{nativePtr.ToString("X")} because type {type} is not supported.");
                     }
                     break;

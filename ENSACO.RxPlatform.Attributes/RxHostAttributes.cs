@@ -163,4 +163,13 @@ namespace ENSACO.RxPlatform.Attributes
         {
         }
     }
+
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    public class RxPlatformDisplayType : RxPlatformTypeAttribute
+    {
+        public RxPlatformDisplayType(string nodeId, string directory = "", string name = "")
+            : base(nodeId, directory, name)
+        {
+        }
+    }
 }

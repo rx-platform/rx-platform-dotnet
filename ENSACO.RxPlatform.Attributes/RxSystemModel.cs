@@ -22,7 +22,7 @@ public class BucketStatus
 [RxPlatformDataType(nodeId: "1:i:201326671",  directory: "/sys/types/system",  name: "ItemChangeDetails")]
 public class ItemChangeDetails
 {
-	public DateTime TS { get; set; } = DateTime.Parse("2025-12-09T14:12:06.665");
+	public DateTime TS { get; set; } = DateTime.Parse("2025-12-16T12:54:58.793");
 	public RxNodeId Id { get; set; } = RxNodeId.FromString("");
 	public string Path { get; set; } = "";
 }
@@ -50,6 +50,10 @@ public class ConsoleOUTData
 }
 [RxPlatformEventType(nodeId: "1:i:7",  directory: "/sys/types/base",  name: "EventBase")]
 public class EventBase
+{
+}
+[RxPlatformFilterType(nodeId: "1:i:10",  directory: "/sys/types/base",  name: "FilterBase")]
+public class FilterBase
 {
 }
 [RxPlatformObjectType(nodeId: "1:i:201326655",  directory: "/sys/types/base",  name: "InternalObjectType")]
@@ -249,8 +253,8 @@ public class SystemInfo
 {
 	public string Instance { get; set; } = "";
 	public string Node { get; set; } = "";
-	public DateTime StartTime { get; set; } = DateTime.Parse("2025-12-09T14:12:05.022");
-	public DateTime Time { get; set; } = DateTime.Parse("2025-12-09T14:12:06.664");
+	public DateTime StartTime { get; set; } = DateTime.Parse("2025-12-16T12:54:58.480");
+	public DateTime Time { get; set; } = DateTime.Parse("2025-12-16T12:54:58.793");
 	public string PlatformVer { get; set; } = "";
 	public string LibraryVer { get; set; } = "";
 	public string TerminalVer { get; set; } = "";
@@ -740,6 +744,13 @@ public class XMLSource : ExternSource
 public class JSONPort : ApplicationPort
 {
 }
+[RxPlatformFilterType(nodeId: "1:i:201326754",  directory: "/sys/types/support",  name: "ASCIIFilter")]
+public class ASCIIFilter
+{
+	public byte InvalidChar { get; set; } = 63;
+	public byte Columns { get; set; } = 0;
+	public byte MaxLen { get; set; } = 0;
+}
 [RxPlatformStructType(nodeId: "1:i:201326691",  directory: "/sys/types/support",  name: "BridgePortOptions")]
 public class BridgePortOptions : PortOptions
 {
@@ -753,6 +764,12 @@ public class BridgeVariable<T>
 	public bool SequentialWrite { get; set; } = false;
 	public bool SingleSuccess { get; set; } = true;
 	public bool AckFromInput { get; set; } = false;
+}
+[RxPlatformFilterType(nodeId: "1:i:201326770",  directory: "/sys/types/support",  name: "CalcFilter")]
+public class CalcFilter
+{
+	public string InPath { get; set; } = "x";
+	public string OutPath { get; set; } = "x";
 }
 [RxPlatformStructType(nodeId: "1:i:201326686",  directory: "/sys/types/support",  name: "ClientPortStatusData")]
 public class ClientPortStatusData : PortStatusData
@@ -795,6 +812,17 @@ public class ComplexOutputVariable<T>
 	public bool SingleSuccess { get; set; } = true;
 	public bool AckFromInput { get; set; } = false;
 }
+[RxPlatformFilterType(nodeId: "1:i:201326773",  directory: "/sys/types/support",  name: "CumulativeSpeedFilter")]
+public class CumulativeSpeedFilter
+{
+	public uint Period { get; set; } = 1000;
+}
+[RxPlatformFilterType(nodeId: "1:i:201326694",  directory: "/sys/types/support",  name: "CutoffScaling")]
+public class CutoffScaling
+{
+	public double InCutoffValue { get; set; } = 0;
+	public double OutCutoffValue { get; set; } = 0;
+}
 [RxPlatformStructType(nodeId: "1:i:201326708",  directory: "/sys/types/support",  name: "DisplayResource")]
 public class DisplayResource
 {
@@ -806,6 +834,19 @@ public class DisplayStatus
 	public long Failed { get; set; } = 0;
 	public float LastReqTime { get; set; } = 0;
 	public float MaxReqTime { get; set; } = 0;
+}
+public class DotNetDynamicRelation : DotNetRelation
+{
+	protected DotNetDynamicRelation(string nodeId, string directory = "", string name = "")
+		: base(nodeId, directory, name)
+	{
+	}
+
+	public DotNetDynamicRelation()
+		: base("1:i:201326876", "/sys/types/support", "DotNetDynamicRelation")
+	{
+	}
+
 }
 [RxPlatformEventType(nodeId: "1:i:201326867",  directory: "/sys/types/support",  name: "DotNetEvent")]
 public class DotNetEvent
@@ -831,6 +872,19 @@ public class DotNetRelation : RxPlatformRelationAttribute
 [RxPlatformSourceType(nodeId: "1:i:201326868",  directory: "/sys/types/support",  name: "DotNetSource")]
 public class DotNetSource : VariableSource
 {
+}
+public class DotNetStaticRelation : DotNetRelation
+{
+	protected DotNetStaticRelation(string nodeId, string directory = "", string name = "")
+		: base(nodeId, directory, name)
+	{
+	}
+
+	public DotNetStaticRelation()
+		: base("1:i:201326875", "/sys/types/support", "DotNetStaticRelation")
+	{
+	}
+
 }
 [RxPlatformStructType(nodeId: "1:i:201326870",  directory: "/sys/types/support",  name: "DotNetStruct")]
 public class DotNetStruct
@@ -889,6 +943,15 @@ public class FilePortOptions : PortOptions
 	public string FileFilter { get; set; } = "*";
 	public int FileTimeout { get; set; } = 300000;
 }
+[RxPlatformFilterType(nodeId: "1:i:201326760",  directory: "/sys/types/support",  name: "Hex2DecFilter")]
+public class Hex2DecFilter
+{
+	public bool EmptyIsZero { get; set; } = true;
+}
+[RxPlatformFilterType(nodeId: "1:i:201326696",  directory: "/sys/types/support",  name: "HighCutoffScaling")]
+public class HighCutoffScaling : CutoffScaling
+{
+}
 [RxPlatformStructType(nodeId: "1:i:201326825",  directory: "/sys/types/support",  name: "HttpAddressingPortOptions")]
 public class HttpAddressingPortOptions : PortOptions
 {
@@ -909,6 +972,20 @@ public class IPBindData
 	public string IPAddress { get; set; } = "";
 	public ushort IPPort { get; set; } = 0;
 }
+[RxPlatformFilterType(nodeId: "1:i:201326759",  directory: "/sys/types/support",  name: "LatchFilter")]
+public class LatchFilter
+{
+	public bool Unlatch { get; set; } = false;
+	public uint Timeout { get; set; } = 0;
+}
+[RxPlatformFilterType(nodeId: "1:i:201326693",  directory: "/sys/types/support",  name: "LimitFilter")]
+public class LimitFilter
+{
+	public double HiInput { get; set; } = 1000;
+	public double LowInput { get; set; } = 0;
+	public double HiOutput { get; set; } = 1000;
+	public double LowOutput { get; set; } = 0;
+}
 [RxPlatformStructType(nodeId: "1:i:201326692",  directory: "/sys/types/support",  name: "LimiterPortOptions")]
 public class LimiterPortOptions : PortOptions
 {
@@ -916,6 +993,18 @@ public class LimiterPortOptions : PortOptions
 	public bool IgnoreZeros { get; set; } = false;
 	public bool UsePacketId { get; set; } = true;
 	public int QueueSize { get; set; } = 0;
+}
+[RxPlatformFilterType(nodeId: "1:i:201326649",  directory: "/sys/types/support",  name: "LinearScaling")]
+public class LinearScaling
+{
+	public double HiEU { get; set; } = 10;
+	public double LowEU { get; set; } = 0;
+	public double HiRaw { get; set; } = 100;
+	public double LowRaw { get; set; } = 0;
+}
+[RxPlatformFilterType(nodeId: "1:i:201326695",  directory: "/sys/types/support",  name: "LowCutoffScaling")]
+public class LowCutoffScaling : CutoffScaling
+{
 }
 [RxPlatformStructType(nodeId: "1:i:201326765",  directory: "/sys/types/support",  name: "MACBindData")]
 public class MACBindData
@@ -1025,10 +1114,20 @@ public class PoolData
 	public double MaxProcTime { get; set; } = 0;
 	public uint MaxQueueSize { get; set; } = 0;
 }
+[RxPlatformFilterType(nodeId: "1:i:201326716",  directory: "/sys/types/support",  name: "QualityFilter")]
+public class QualityFilter
+{
+	public bool GoodValue { get; set; } = true;
+}
 [RxPlatformSourceType(nodeId: "1:i:201326645",  directory: "/sys/types/support",  name: "RegisterSource")]
 public class RegisterSource : VariableSource
 {
 	public bool Persist { get; set; } = false;
+}
+[RxPlatformFilterType(nodeId: "1:i:201326856",  directory: "/sys/types/support",  name: "RoundFilter")]
+public class RoundFilter
+{
+	public int DecimalPlaces { get; set; } = 2;
 }
 [RxPlatformStructType(nodeId: "1:i:201326690",  directory: "/sys/types/support",  name: "RouterPortOptions")]
 public class RouterPortOptions : PortOptions
@@ -1222,4 +1321,4 @@ public class StaticHttpDisplayResource : HttpDisplayResource
 {
 }
 }
-// Generated on:Tuesday, December 9, 2025  3:20:16 PM
+// Generated on:Tuesday, December 16, 2025  2:05:54 PM
