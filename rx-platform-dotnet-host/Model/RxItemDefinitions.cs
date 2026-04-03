@@ -99,6 +99,15 @@ namespace ENSACO.RxPlatform.Hosting.Model.Items
     };
 
 
+
+    class RxHostEventItem : RxMetaItem
+    {
+        public override string type { get; set; } = "event";
+        public RXHostReferenceId target { get; set; } = new RXHostReferenceId();
+        public RXHostReferenceId args { get; set; } = new RXHostReferenceId();
+        public RxAccessInfo access { get; set; } = new RxAccessInfo();
+    };
+
     class RxHostBlockVariableItem : RxMetaItem
     {
         public override string type { get; set; } = "variable";

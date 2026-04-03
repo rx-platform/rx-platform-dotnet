@@ -46,6 +46,8 @@ namespace DynamicAssembly
             HiRaw = 1,
             LowRaw = 0
         };
+        public uint ObjectProp1111 { get; init; } = 1000;
+        public virtual string? ObjectProp2 { get; set; } = "zikica";
     }
 
     [RxPlatformDeclare()]

@@ -4,6 +4,7 @@ using ENSACO.RxPlatform.Hosting.Interface;
 using ENSACO.RxPlatform.Hosting.Internal;
 using ENSACO.RxPlatform.Hosting.Model.Items;
 using ENSACO.RxPlatform.Model;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -68,6 +69,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 rx_node_id_struct parentId = parentNodeId.IsNull() ?
                     CommonInterface.CreateNodeIdFromInt(HostPlatformIds.RX_CLASS_DATA_BASE_ID) :
                     CommonInterface.CreateNodeIdFromRxNodeId(parentNodeId);
+                //Console.WriteLine("Generating from:\r\n" + def);
                 var result = PlatformHostMain.api.BuildType(rx_item_type.rx_data_type
                     , lib.GetPluginName(), &id, &parentId, name, path, 0x10001, 0, def
                     , 0
@@ -177,10 +179,12 @@ namespace ENSACO.RxPlatform.Hosting.Model
 
             def += @"
 ,
-        ""displays"": [] 
+        ""displays"":  
 ";
             def+= JsonSerializer.Serialize(displays, PlatformHostMain.JsonContext);
             def += @"
+}
+"; def += @"
 }
 ";
 
@@ -490,7 +494,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
             , RxMapperDataItem[]? mappers
             , RxFilterDataItem[]? filters
             , string connections
-            , HostedPlatformLibrary lib)
+            , HostedPlatformLibrary lib
+            , RxNodeId argumentId)
         {
 
 
@@ -560,10 +565,16 @@ namespace ENSACO.RxPlatform.Hosting.Model
             }
             def += @"
         ""description"": """ + classDescription + @"""
-    }
-}
 ";
 
+            if (itemType == rx_item_type.rx_event_type)
+            {
+                def += @",
+    ""args"": { ""id"": """ + argumentId.ToString() + @""" }";
+            }
+        def += @"
+    }
+}";
             Exception? exception = null;
             unsafe
             {
@@ -629,7 +640,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , null //type.mappers
                     , type.filters
                     , type.runtimeConnections + "|" + type.initialValues
-                    , lib))
+                    , lib
+                    , RxNodeId.NullId))
                     return false;//no changes
 
                 type.valid = false;
@@ -668,7 +680,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , null //type.mappers
                     , type.filters
                     , type.runtimeConnections + "|" + type.initialValues
-                    , lib))
+                    , lib
+                    , RxNodeId.NullId))
                     return false;//no changes
 
                 type.valid = false;
@@ -734,7 +747,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , null //type.mappers
                     , type.filters
                     , type.runtimeConnections + "|" + type.initialValues
-                    , lib))
+                    , lib
+                    , RxNodeId.NullId))
                     return false;//no changes
 
                 type.valid = false;
@@ -798,7 +812,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , type.mappers
                     , type.filters
                     , type.runtimeConnections + "|" + type.initialValues
-                    , lib))
+                    , lib
+                    , RxNodeId.NullId))
                     return false;//no changes
 
                 type.valid = false;
@@ -824,6 +839,22 @@ namespace ENSACO.RxPlatform.Hosting.Model
             if (PlatformHostMain.api.BuildType == null)
                 throw new Exception("BuildType function is not available in the API.");
 
+            RxNodeId argumentsId = RxNodeId.PlatformNode(HostPlatformIds.RX_CLASS_DATA_BASE_ID);
+
+            if (type.attribute != null && type.attribute.Arguments != null)
+            {
+                Attribute? attr = type.attribute.Arguments.GetCustomAttribute(typeof(RxPlatformDataType));
+                if(attr != null)
+                {
+                    var dataTypeAttr = attr as RxPlatformDataType;
+                    if (dataTypeAttr != null)
+                    {
+                        argumentsId = dataTypeAttr.NodeId;
+                    }
+                }
+            }
+                
+
             if (type.attribute != null && type.defaultConstructor != null && type.definedType)
             {
                 string overrides = "{}";
@@ -846,10 +877,11 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , overrides
                     , type.items
                     , null //type.sources
-                    , null //type.mappers
+                    , type.mappers
                     , null //type.filters
                     , type.runtimeConnections + "|" + type.initialValues
-                    , lib))
+                    , lib
+                    , argumentsId))
                     return false;//no changes
 
                 type.valid = false;
@@ -900,7 +932,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , null //type.mappers
                     , null //type.filters
                     , type.runtimeConnections + "|" + type.initialValues
-                    , lib))
+                    , lib
+                    , RxNodeId.NullId))
                     return false;//no changes
 
                 type.valid = false;
@@ -951,7 +984,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , type.mappers
                     , null //type.filters
                     , type.runtimeConnections + "|" + type.initialValues
-                    , lib))
+                    , lib
+                    , RxNodeId.NullId))
                     return false;//no changes
 
                 type.valid = false;

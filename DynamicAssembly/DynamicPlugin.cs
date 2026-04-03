@@ -63,10 +63,13 @@ namespace DynamicAssembly
             extended = await RxPlatformObjectRuntime.CreateInstance<DynamicObject>(
                 new ExtendedDynamicObject
                 {
-                    SubData = new DynamicSubDataType
+                    SubData = new DynamicDataType
                     {
-                        SubItem = 9999,
-                        SubStringString = "subdata value",
+                        SubData = new DynamicSubDataType
+                        {
+                            SubItem = 9999,
+                            SubStringString = "subdata value",
+                        }
                     },
                     OtherDynamicObj = other2,
                     ModbusSlave = stack.Slaves[1],

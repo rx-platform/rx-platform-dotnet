@@ -136,6 +136,7 @@ namespace ENSACO.RxPlatform.Hosting
                     SourceChangedBytes = RxRuntimeExecuter.SourceChanged<byte[]>,
                     SourceChangedObject = RxRuntimeExecuter.SourceChangedObject,
                     SourceChangedBad = RxRuntimeExecuter.SourceChangedBad,
+                    FireEvent = RxRuntimeExecuter.FireEvent,
 
                     GetInstance = RxRuntimeRegistrator.GetInstance
                 }
@@ -230,7 +231,12 @@ namespace ENSACO.RxPlatform.Hosting
             var nodeId = CommonInterface.CreateRxNodeIdFromNodeId(*node_id);
             var parentId = CommonInterface.CreateRxNodeIdFromNodeId(*parent_id);
 
-            if ((type == rx_item_type.rx_object || type == rx_item_type.rx_struct_type) && nodeId.IsNull() || parentId.IsNull())
+            if ((type == rx_item_type.rx_object 
+                || type == rx_item_type.rx_event_type
+                || type == rx_item_type.rx_source_type
+                || type == rx_item_type.rx_mapper_type
+                || type == rx_item_type.rx_struct_type)
+                && nodeId.IsNull() || parentId.IsNull())
             {
                 return;
             }
@@ -254,7 +260,11 @@ namespace ENSACO.RxPlatform.Hosting
             var nodeId = CommonInterface.CreateRxNodeIdFromNodeId(*node_id);
             var parentId = CommonInterface.CreateRxNodeIdFromNodeId(*parent_id);
 
-            if ((type == rx_item_type.rx_object || type == rx_item_type.rx_struct_type) && nodeId.IsNull())
+            if ((type == rx_item_type.rx_object
+                || type == rx_item_type.rx_event_type
+                || type == rx_item_type.rx_source_type
+                || type == rx_item_type.rx_mapper_type
+                || type == rx_item_type.rx_struct_type) && nodeId.IsNull())
             {
                 return;
             }

@@ -28,6 +28,8 @@ namespace ENSACO.RxPlatform.Hosting.Interface
         internal IntPtr source_write_done;    // dotnetSourceWriteDone_t
 
         internal IntPtr source_change;    // dotnetSourceChange_t
+
+        internal IntPtr fire_event;    // dotnetFireEvent_t
     };
 
 #pragma warning restore CS0649
@@ -112,6 +114,15 @@ namespace ENSACO.RxPlatform.Hosting.Interface
         nint instance
         , full_value_type value);
 
+
+
+    internal unsafe delegate void dotnetFireEventDelegate(
+        nint instance
+        , [MarshalAs(UnmanagedType.LPStr)] string value
+        , [MarshalAs(UnmanagedType.LPStr)] string queue
+        , int state
+        , int remove);
+
     internal class InitDataAPI
     {
         internal unsafe void Init(ref dotnet_loading_api_t api)
@@ -134,7 +145,7 @@ namespace ENSACO.RxPlatform.Hosting.Interface
             SourceWriteDone = (dotnetSourceWriteDoneDelegate)Marshal.GetDelegateForFunctionPointer(api.source_write_done, typeof(dotnetSourceWriteDoneDelegate));
             SourceChange = (dotnetSourceChangeDelegate)Marshal.GetDelegateForFunctionPointer(api.source_change, typeof(dotnetSourceChangeDelegate));
 
-  
+            FireEvent = (dotnetFireEventDelegate)Marshal.GetDelegateForFunctionPointer(api.fire_event, typeof(dotnetFireEventDelegate));
         }
 
         internal dotnetWriteLogDelegate? WriteLog { get; set; }
@@ -228,5 +239,6 @@ namespace ENSACO.RxPlatform.Hosting.Interface
         internal dotnetExecuteDoneDelegate? ExecuteDone { get; set; } = null;
         internal dotnetSourceWriteDoneDelegate? SourceWriteDone { get; set; } = null;
         internal dotnetSourceChangeDelegate? SourceChange { get; set; } = null;
+        internal dotnetFireEventDelegate? FireEvent { get; set; } = null;
     }
 }

@@ -1,6 +1,7 @@
 ﻿using ENSACO.RxPlatform.Model;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -64,6 +65,9 @@ namespace ENSACO.RxPlatform.Runtime
     public delegate void SourceChangedBadDelegate(IntPtr instance);
 
 
+    public delegate void FireEventDelegate(IntPtr instance, string value, string queue, bool state, bool remove);
+
+
     public delegate RxPlatformObjectRuntime? GetInstanceDelegate(IntPtr instancePtr);
 
     public struct RxRuntimeDelegates
@@ -108,6 +112,8 @@ namespace ENSACO.RxPlatform.Runtime
         public SourceChangedUuidDelegate? SourceChangedUuid;
         public SourceChangedObjectDelegate? SourceChangedObject;
         public SourceChangedBadDelegate? SourceChangedBad;
+
+        public FireEventDelegate? FireEvent;
 
         public GetInstanceDelegate? GetInstance;
     }
@@ -567,6 +573,14 @@ namespace ENSACO.RxPlatform.Runtime
     public class RxPlatformEventRuntime : RxPlatformRuntimeBase
     {
         override internal byte RxType { get { return 13;/*rx_event_type*/ } }
+
+        protected void __FireEvent(string value, string queue, bool state, bool remove)
+        {
+            if (__runtimeFunctions.FireEvent != null && __nativeObjectPtr != IntPtr.Zero)
+            {
+                __runtimeFunctions.FireEvent(__nativeObjectPtr, value, queue, state, remove);
+            }
+        }
 
     }
     

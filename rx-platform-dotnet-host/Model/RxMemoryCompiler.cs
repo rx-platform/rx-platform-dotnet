@@ -622,7 +622,20 @@ public class {typeName} : {typeNamespace}.{typeName}
             if (type.codeNamespace == null)
                 return;
 
+           
+
             GenerateTypeHeader(typeName, type.codeNamespace, stream);
+
+            stream.Append($@"
+    public {typeName}() : base()
+    {{
+        Fire += (value) =>
+        {{
+            string val = JsonSerializer.Serialize(value);
+            __FireEvent(val, """", false, false);
+        }};
+    }}
+");
             GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream);
             GenerateTypeStructsCode(type.definedStructs, stream);
 

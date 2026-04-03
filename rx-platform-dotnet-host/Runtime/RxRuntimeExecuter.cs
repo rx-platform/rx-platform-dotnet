@@ -36,9 +36,9 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     {
                                         id = obj.nodeId;
                                         started = obj.startedMethod;
-                                        if(RuntimeConstructAlgorithms.TryGetConstructionData(obj.nodeId, obj.path, out var constructData) && constructData!=null)
+                                        if (RuntimeConstructAlgorithms.TryGetConstructionData(obj.nodeId, obj.path, out var constructData) && constructData != null)
                                         {
-                                            foreach(var child in constructData.structs)
+                                            foreach (var child in constructData.structs)
                                             {
                                                 if (child.Value._nativePtr != nint.Zero)
                                                 {
@@ -401,7 +401,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             return new Tuple<SourceWriteMethods, RxPlatformSourceRuntime?>(new SourceWriteMethods(), null);
         }
         // called by managed runtimes to write property values
-        
+
         internal static async Task<bool> WriteProperty<T>(byte type, nint whose, int index, T value)
         {
             if (PlatformHostMain.api.WriteValue == null)
@@ -510,7 +510,6 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 
                         rx_result_struct ret = new rx_result_struct();
                         ret.count = 0;
-
                         if (PlatformHostMain.api.ExecuteDone != null)
                             PlatformHostMain.api.ExecuteDone(transId, whose, "{}", ret);
                     }
@@ -841,13 +840,21 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
         }
         internal static void SourceChangedBad(nint instance)
         {
-            if(PlatformHostMain.api.SourceChange==null)
+            if (PlatformHostMain.api.SourceChange == null)
             {
                 return;
             }
             full_value_type val = PrepareValue();
             val.quality = 0x80000020;// RX_BAD_QUALITY_FAILURE
             PlatformHostMain.api.SourceChange(instance, val);
+        }
+        internal static void FireEvent(nint instance, string value, string queue, bool state, bool remove)
+        {
+            if (PlatformHostMain.api.FireEvent == null)
+            {
+                return;
+            }
+            PlatformHostMain.api.FireEvent(instance, value, queue, state ? 1 : 0, remove ? 1 : 0);
         }
     }
 }

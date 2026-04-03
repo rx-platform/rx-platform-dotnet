@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
     <EnableUnmanagedExports>false</EnableUnmanagedExports>
-    <Version>1.7.4</Version>
+    <Version>2.0.0</Version>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>{rx-platform} .NET Modbus Library</Title>
     <Authors>ENSACO Solutions doo</Authors>
@@ -15,7 +15,7 @@
     <Description>Package contains .NET Core model for {rx-platform} Modbus implementation.</Description>
     <PackageIcon>rx-platform-256.png</PackageIcon>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Copyright>Copyright (c) 2025 ENSACO Solutions doo</Copyright>
+    <Copyright>Copyright (c) 2026 ENSACO Solutions doo</Copyright>
     <PackageProjectUrl>http://rx-platform.org/</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

@@ -12,19 +12,27 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
 
     internal class RxItemsFill : IRxMetaAlgorithm
     {
-        private List<RxMetaItem>? GetItems(PropertyInfo[] properties, object instance)
+        private List<RxMetaItem>? GetItems(PropertyInfo[] properties, PropertyInfo[]? valueProperties, object instance)
         {
             var items = new List<RxMetaItem>();
+            System.Diagnostics.Debug.Assert(valueProperties == null || valueProperties.Length == properties.Length);
+            int idx = 0;
             foreach (var prop in properties)
             {
+                PropertyInfo valueProp = prop;
+                if (valueProperties != null)
+                {
+                    valueProp = valueProperties[idx];
+                }
+                idx++;
                 object? value = null;
                 try
                 {
-                    value = prop.GetValue(instance);
+                    value = valueProp.GetValue(instance);
                 }
                 catch
                 {
-                    return null;
+                    value = null;
                 }
                 int array = -1;
                 Type? propType = ReflectionHelpers.GetNullableType(prop);
@@ -155,29 +163,80 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                         }
                         else
                         {
-                            if (!initOnly)
+                            var eventAttr = propType.GetCustomAttribute<RxPlatformEventType>(false);
+                            if (eventAttr != null)
                             {
-                                RxHostPropItem item = new RxHostPropItem
+                                var attrType = eventAttr.GetType();
+                                if (attrType.IsConstructedGenericType)
                                 {
-                                    name = prop.Name,
-                                    ro = !prop.CanWrite || hasPrivateSetter,
-                                    array = array
-                                };
+                                    string? targetId = null;
+                                    string? argumentId = null;
+                                    unsafe
+                                    {
+                                        Type argType = attrType.GenericTypeArguments[0];
+                                        if (argType != null)
+                                        {
+                                            var dtAttribute = argType.GetCustomAttribute<RxPlatformDataType>(false);
+                                            if (dtAttribute != null)
+                                            {
+                                                string_value_struct argIdStr;
+                                                rx_node_id_struct argId = CommonInterface.CreateNodeIdFromRxNodeId(dtAttribute.NodeId);
+                                                if (CommonInterface.rx_node_id_to_string(&argId, &argIdStr) > 0)
+                                                {
+                                                    argumentId = Marshal.PtrToStringUTF8(CommonInterface.rx_c_str(&argIdStr));
+                                                    CommonInterface.rx_destory_string_value_struct(&argIdStr);
+                                                }
+                                                CommonInterface.rx_destory_node_id(&argId);
+                                            }
+                                        }
+                                        string_value_struct nodeIdStr;
+                                        rx_node_id_struct nodeId = CommonInterface.CreateNodeIdFromRxNodeId(eventAttr.NodeId);
+                                        if (CommonInterface.rx_node_id_to_string(&nodeId, &nodeIdStr) > 0)
+                                        {
+                                            targetId = Marshal.PtrToStringUTF8(CommonInterface.rx_c_str(&nodeIdStr));
+                                            CommonInterface.rx_destory_string_value_struct(&nodeIdStr);
+                                        }
+                                        CommonInterface.rx_destory_node_id(&nodeId);
+                                    }
+                                    if (!string.IsNullOrEmpty(targetId) && !string.IsNullOrEmpty(argumentId))
+                                    {
+                                        RxHostEventItem item = new RxHostEventItem()
+                                        {
+                                            name = prop.Name,
+                                            target = new RXHostReferenceId { id = targetId },
+                                            args = new RXHostReferenceId { id = argumentId },
 
-                                item.value = ReflectionHelpers.GetValue(prop, propType, value);
-                                items.Add(item);
+                                        };
+                                        items.Add(item);
+                                    }
+                                }
                             }
                             else
                             {
-                                RxHostConstItem item = new RxHostConstItem
+                                if (!initOnly)
                                 {
-                                    name = prop.Name,
-                                    ro = initOnly,
-                                    array = array
-                                };
+                                    RxHostPropItem item = new RxHostPropItem
+                                    {
+                                        name = prop.Name,
+                                        ro = !prop.CanWrite || hasPrivateSetter,
+                                        array = array
+                                    };
 
-                                item.value = ReflectionHelpers.GetValue(prop, propType, value);
-                                items.Add(item);
+                                    item.value = ReflectionHelpers.GetValue(prop, propType, value);
+                                    items.Add(item);
+                                }
+                                else
+                                {
+                                    RxHostConstItem item = new RxHostConstItem
+                                    {
+                                        name = prop.Name,
+                                        ro = initOnly,
+                                        array = array
+                                    };
+
+                                    item.value = ReflectionHelpers.GetValue(prop, propType, value);
+                                    items.Add(item);
+                                }
                             }
                         }
                     }
@@ -321,8 +380,13 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     objType.valid = false;
                     continue;
                 }
+                PropertyInfo[]? valProperties = null;
+                if (objType.type.IsGenericType)
+                {
+                    valProperties = ReflectionHelpers.GetSimplePropertyInfos(objType.type.MakeGenericType(new Type[] { typeof(int) }), true);
+                }
                 var props = ReflectionHelpers.GetSimplePropertyInfos(objType.type, true);
-                var items = GetItems(props, instance);
+                var items = GetItems(props, valProperties, instance);
                 if(items==null)
                 {
                     objType.valid = false;

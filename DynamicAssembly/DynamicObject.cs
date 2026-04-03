@@ -27,6 +27,10 @@ namespace DynamicAssembly
         public DynamicObject()
         {
         }
+
+        public DynamicEvent MyEvent { get; set; } = new DynamicEvent
+        {
+        };
         public uint ObjectProp1111 { get; init; } = 1000;
         public virtual string? ObjectProp2 { get; set; } = "zikica";
 
@@ -48,19 +52,26 @@ namespace DynamicAssembly
             PeriodString = "neki struct string"
         };
 
-        public virtual Task<bool> WriteSubData(DynamicSubDataType newValue)
+        public virtual Task<bool> WriteSubData(DynamicDataType newValue)
         {
             return Task.FromResult(false);
         }
-        public virtual DynamicSubDataType? SubData { get; set; } = new DynamicSubDataType
+        public virtual DynamicDataType? SubData { get; set; } = new DynamicDataType
         {
-            SubItem = 5000,
-            SubStringString = "subzikica"
+            TimeProp = DateTime.Now,
+            SubData = new DynamicSubDataType
+            {
+                SubItem = 5000,
+                SubStringString = "subzikica"
+            }
         };
 
         public void Started()
         {
             Console.WriteLine("DynamicObject: Started method called.");
+
+
+           // MyEvent.OnObjectProp2Change += MyEvent_OnObjectProp2Change;
 
             OnObjectProp2Change += (newValue) =>
             {
@@ -76,10 +87,14 @@ namespace DynamicAssembly
                         {
                             Console.WriteLine($"DynamicPlugin: Setting ObjectProp2 to 'Value {i}'");
                             //ObjectProp2 = $"Value {i}";
-                            var temp = new DynamicSubDataType
+                            var temp = new DynamicDataType
                             {
-                                SubItem = ObjectProp4 != null ? (uint)(i + ObjectProp4) : (uint)i,
-                                SubStringString = $"Neki string{i} *** {newValue}"
+                                TimeProp = DateTime.Now,
+                                SubData = new DynamicSubDataType
+                                {
+                                    SubItem = ObjectProp4 != null ? (uint)(i + ObjectProp4) : (uint)i,
+                                    SubStringString = $"Neki string{i} *** {newValue}"
+                                }
                             };
                             //SubData = temp;
                             if (!await WriteSubData(temp))
@@ -89,7 +104,7 @@ namespace DynamicAssembly
 
                             if(!await WriteObjectProp4((byte)(i + 65)))
                                 Console.WriteLine("DynamicObject: WriteObjectProp4 failed.");
-                            await Task.Delay(1000);
+                            await Task.Delay(2000);
                         }
 
                     }
@@ -98,6 +113,11 @@ namespace DynamicAssembly
                 task.Start();
             };
 
+        }
+
+        private void MyEvent_OnObjectProp2Change(string? obj)
+        {
+            Console.WriteLine($"DynamicObject: MyEvent_OnObjectProp2Change event fired. New Value: {obj}");
         }
 
         public void FunkcijaNeka22()

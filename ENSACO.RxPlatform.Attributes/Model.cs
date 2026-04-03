@@ -164,6 +164,10 @@ namespace ENSACO.RxPlatform.Model
         {
             return new RxNodeId(id, 0);
         }
+        public static RxNodeId PlatformNode(uint id)
+        {
+            return new RxNodeId(id, 1);
+        }
         public static RxNodeId FromString(string strid)
         {
             if (string.IsNullOrEmpty(strid))

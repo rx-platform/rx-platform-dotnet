@@ -30,6 +30,7 @@ namespace DynamicAssembly
     [RxPlatformStructType(nodeId: "C1AF1414-F289-4299-B958-E022E400389C")]
     public class DynamicStruct : RxPlatformStructRuntime
     {
+        public DateTime? TimeProp { get; set; } = DateTime.Now;
         public uint? PeriodMsZrna { get; set; } = 1000;
         public virtual string? PeriodString { get; set; } = "zikica";
         public bool? ZeljkoProp44 { get; set; } = true;

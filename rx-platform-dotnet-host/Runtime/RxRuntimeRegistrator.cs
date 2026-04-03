@@ -14,14 +14,14 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 {
     internal static class RxRuntimeRegistrator
     {
-        static async Task<bool> RxPlatformCreateRuntime(rx_item_type rxType, RxNodeId id, RxNodeId parentId, object prototype, string name, string path, string def)
+        static async Task<bool> RxPlatformCreateRuntime(rx_item_type rxType, string lib, RxNodeId id, RxNodeId parentId, object prototype, string name, string path, string def)
         {
             RxPlatformObject.Instance.WriteLogDebug("PlatformRuntimeTypes.InternalLibraryCreateRuntime", 100
                 , $"Creating Runtime {prototype.GetType().FullName} with name {name}, path {path}.");
 
             if (PlatformHostMain.api.CreateRuntime != null)
             {
-                Exception? result = await PlatformHostMain.api.CreateRuntime(rxType, "", id, parentId, name, path, 0x10000, 0, 0, def);
+                Exception? result = await PlatformHostMain.api.CreateRuntime(rxType, lib, id, parentId, name, path, 0x10000, 0, 0, def);
 
                 if (result == null)
                 {
@@ -91,7 +91,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 stream.Append($@"
 }}
 }}");
-                if (await RxPlatformCreateRuntime(rxType, id, parentId, prototype, name, path, stream.ToString()))
+                if (await RxPlatformCreateRuntime(rxType, lib.GetPluginName(), id, parentId, prototype, name, path, stream.ToString()))
                 {
                     lock (RxMetaData.Instance.TypesLock)
                     {
@@ -160,7 +160,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 }}
 }}");
                 string def = stream.ToString();
-                if (await RxPlatformCreateRuntime(rxType, id, parentId, prototype, name, path, def))
+                if (await RxPlatformCreateRuntime(rxType, lib.GetPluginName(), id, parentId, prototype, name, path, def))
                 {
                     var instData = new PlatformInstanceData()
                     {
@@ -204,7 +204,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
             if (!path.StartsWith('/'))
             {
-                path = $"/world{(string.IsNullOrEmpty(path) ? "" : "/")}{path}";
+                path = $"/world/{lib.GetPluginName()}{(string.IsNullOrEmpty(path) ? "" : "/")}{path}";
                 
             }
             if (id.IsNull())
@@ -434,6 +434,79 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 
             }
         }
+
+        static void BindEvent(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr)
+        {
+
+            System.Diagnostics.Debug.Assert(!nodeId.IsNull() && !string.IsNullOrEmpty(path));
+            RuntimeConstructionData typeConstructor;
+            RxPlatformObjectRuntime? hostObj = null;
+            bool found = false;
+            lock (RxMetaData.Instance.TypesLock)
+            {
+                if (RxMetaData.Instance.ObjectRuntimes.NodeIdDict.TryGetValue(nodeId, out var rtData))
+                {
+                    if (rtData.objectRuntime.IsAllocated)
+                    {
+                        hostObj = rtData.objectRuntime.Target as RxPlatformObjectRuntime;
+                    }
+                }
+                found = RxMetaData.Instance.EventRuntimes.RegisteredConstructors.TryGetValue(typeId, out typeConstructor);
+            }
+            if (found && typeConstructor.constructor != null)
+            {
+                RxPlatformEventRuntime? managedObj = typeConstructor.constructor() as RxPlatformEventRuntime;
+                if (managedObj != null)
+                {
+                    if (typeConstructor.initialValues != null && typeConstructor.initialValues.Length > 0)
+                    {
+                        string temp = Encoding.UTF8.GetString(typeConstructor.initialValues);
+                        Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
+                        managedObj.__rxStructDeserialize(ref reader);
+                    }
+                    Action? startedMethod = null;
+                    if (typeConstructor.startMethod != null)
+                        startedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.startMethod);
+
+                    Action? stoppedMethod = null;
+                    if (typeConstructor.stopMethod != null)
+                        stoppedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.stopMethod);
+
+
+                    PlatformRuntimeData runtimeData = new PlatformRuntimeData
+                    {
+                        objectRuntime = GCHandle.Alloc(managedObj),
+                        nativeRuntimePtr = nativePtr,
+                        nodeId = nodeId,
+                        startedMethod = startedMethod,
+                        stoppedMethod = stoppedMethod,
+                        path = path
+                    };
+
+                    lock (RxMetaData.Instance.TypesLock)
+                    {
+                        RxMetaData.Instance.EventRuntimes.NativeDict.Add(nativePtr, runtimeData);
+                        RuntimeConstructAlgorithms.AddToConstructionData(rx_item_type.rx_event_type, nodeId, path, nativePtr, RxMetaData.Instance.RuntimeConstruction);
+
+                    }
+
+                    managedObj.__BindObject((IntPtr)nativePtr, nodeId, path);
+                    RxPlatformObject.Instance.WriteLogDebug("PlatformRuntimeTypes.BindObject", 90
+                        , $"Created managed object type for native struct pointer 0x{nativePtr.ToString("X")}.");
+                }
+                else
+                {
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
+                        , $"Failed to bind native struct pointer 0x{nativePtr.ToString("X")} unable to create managed object with type id {typeId}.");
+                }
+            }
+            else
+            {
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
+                    , $"Failed to bind native struct pointer 0x{nativePtr.ToString("X")} because no managed object is registered with id {typeId}.");
+
+            }
+        }
         static void BindSource(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr)
         {
 
@@ -559,6 +632,79 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 
             }
         }
+
+        static void BindMapper(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr)
+        {
+
+            System.Diagnostics.Debug.Assert(!nodeId.IsNull() && !string.IsNullOrEmpty(path));
+            RuntimeConstructionData typeConstructor;
+            RxPlatformObjectRuntime? hostObj = null;
+            bool found = false;
+            lock (RxMetaData.Instance.TypesLock)
+            {
+                if (RxMetaData.Instance.ObjectRuntimes.NodeIdDict.TryGetValue(nodeId, out var rtData))
+                {
+                    if (rtData.objectRuntime.IsAllocated)
+                    {
+                        hostObj = rtData.objectRuntime.Target as RxPlatformObjectRuntime;
+                    }
+                }
+                found = RxMetaData.Instance.MapperRuntimes.RegisteredConstructors.TryGetValue(typeId, out typeConstructor);
+            }
+            if (found && typeConstructor.constructor != null)
+            {
+                RxPlatformMapperRuntime? managedObj = typeConstructor.constructor() as RxPlatformMapperRuntime;
+                if (managedObj != null)
+                {
+                    if (typeConstructor.initialValues != null && typeConstructor.initialValues.Length > 0)
+                    {
+                        string temp = Encoding.UTF8.GetString(typeConstructor.initialValues);
+                        Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
+                        managedObj.__rxStructDeserialize(ref reader);
+                    }
+                    Action? startedMethod = null;
+                    if (typeConstructor.startMethod != null)
+                        startedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.startMethod);
+
+                    Action? stoppedMethod = null;
+                    if (typeConstructor.stopMethod != null)
+                        stoppedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.stopMethod);
+
+
+                    PlatformRuntimeData runtimeData = new PlatformRuntimeData
+                    {
+                        objectRuntime = GCHandle.Alloc(managedObj),
+                        nativeRuntimePtr = nativePtr,
+                        nodeId = nodeId,
+                        startedMethod = startedMethod,
+                        stoppedMethod = stoppedMethod,
+                        path = path
+                    };
+
+                    lock (RxMetaData.Instance.TypesLock)
+                    {
+                        RxMetaData.Instance.MapperRuntimes.NativeDict.Add(nativePtr, runtimeData);
+                        RuntimeConstructAlgorithms.AddToConstructionData(rx_item_type.rx_mapper_type, nodeId, path, nativePtr, RxMetaData.Instance.RuntimeConstruction);
+
+                    }
+
+                    managedObj.__BindObject((IntPtr)nativePtr, nodeId, path);
+                    RxPlatformObject.Instance.WriteLogDebug("PlatformRuntimeTypes.BindObject", 90
+                        , $"Created managed object type for native struct pointer 0x{nativePtr.ToString("X")}.");
+                }
+                else
+                {
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
+                        , $"Failed to bind native struct pointer 0x{nativePtr.ToString("X")} unable to create managed object with type id {typeId}.");
+                }
+            }
+            else
+            {
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
+                    , $"Failed to bind native struct pointer 0x{nativePtr.ToString("X")} because no managed object is registered with id {typeId}.");
+
+            }
+        }
         static internal void BindObject(rx_item_type type, RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr)
         {
             switch (type)
@@ -571,6 +717,12 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                     break;
                 case rx_item_type.rx_struct_type:
                     BindStruct(nodeId, path, typeId, nativePtr);
+                    break;
+                case rx_item_type.rx_event_type:
+                    BindEvent(nodeId, path, typeId, nativePtr);
+                    break;
+                case rx_item_type.rx_mapper_type:
+                    BindMapper(nodeId, path, typeId, nativePtr);
                     break;
                 default:
                     {
@@ -659,18 +811,17 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                     }
                     break;
 
-
-                case rx_item_type.rx_struct_type:
+                case rx_item_type.rx_mapper_type:
                     {
                         bool success = false;
                         lock (RxMetaData.Instance.TypesLock)
                         {
-                            if (RxMetaData.Instance.StructRuntimes.NativeDict.TryGetValue(nativePtr, out var rtData))
+                            if (RxMetaData.Instance.MapperRuntimes.NativeDict.TryGetValue(nativePtr, out var rtData))
                             {
                                 success = true;
                                 if (rtData.objectRuntime.IsAllocated)
                                 {
-                                    RxPlatformStructRuntime? managedObj = rtData.objectRuntime.Target as RxPlatformStructRuntime;
+                                    RxPlatformMapperRuntime? managedObj = rtData.objectRuntime.Target as RxPlatformMapperRuntime;
                                     if (managedObj != null)
                                     {
                                         managedObj.__BindObject(IntPtr.Zero, RxNodeId.NullId, "");
@@ -680,7 +831,45 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                         }
                                     }
                                 }
-                                RxMetaData.Instance.StructRuntimes.NativeDict.Remove(nativePtr);
+                                RxMetaData.Instance.MapperRuntimes.NativeDict.Remove(nativePtr);
+                            }
+                        }
+                        if (success)
+                        {
+                            RxPlatformObject.Instance.WriteLogDebug("PlatformRuntimeTypes.BindObject", 90
+                                    , $"Removed managed object type for native object pointer 0x{nativePtr.ToString("X")}.");
+
+                        }
+                        else
+                        {
+                            RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
+                                , $"Failed to unbind native object pointer 0x{nativePtr.ToString("X")} unable to find managed object with pointer.");
+                        }
+                    }
+                    break;
+
+
+                case rx_item_type.rx_event_type:
+                    {
+                        bool success = false;
+                        lock (RxMetaData.Instance.TypesLock)
+                        {
+                            if (RxMetaData.Instance.EventRuntimes.NativeDict.TryGetValue(nativePtr, out var rtData))
+                            {
+                                success = true;
+                                if (rtData.objectRuntime.IsAllocated)
+                                {
+                                    RxPlatformEventRuntime? managedObj = rtData.objectRuntime.Target as RxPlatformEventRuntime;
+                                    if (managedObj != null)
+                                    {
+                                        managedObj.__BindObject(IntPtr.Zero, RxNodeId.NullId, "");
+                                        if (rtData.stoppedMethod != null)
+                                        {
+                                            rtData.stoppedMethod();
+                                        }
+                                    }
+                                }
+                                RxMetaData.Instance.EventRuntimes.NativeDict.Remove(nativePtr);
                             }
                         }
                         if (success)

@@ -149,8 +149,18 @@ namespace ENSACO.RxPlatform.Attributes
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class RxPlatformEventType : RxPlatformTypeAttribute
     {
-        public RxPlatformEventType(string nodeId, string directory = "", string name = "")
+        public Type? Arguments { get; }
+        public RxPlatformEventType(string nodeId, string directory = "", string name = "", Type? argType = null)
             : base(nodeId, directory, name)
+        {
+            Arguments = argType;
+        }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    public class RxPlatformEventType<T> : RxPlatformEventType
+    {
+        public RxPlatformEventType(string nodeId, string directory = "", string name = "")
+            : base(nodeId, directory, name, typeof(T))
         {
         }
     }

@@ -784,6 +784,10 @@ namespace ENSACO.RxPlatform.Hosting.Common
 
         [DllImport(common_dll, CallingConvention = CallingConvention.Cdecl)]
         public static extern int rx_get_bytes_value(ref typed_value_type val, ulong idx, out bytes_value_struct value);
+        [DllImport(common_dll, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int rx_get_uuid_value(ref typed_value_type val, ulong idx, out rx_uuid_t value);
+        [DllImport(common_dll, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int rx_get_time_value(ref typed_value_type val, ulong idx, out rx_time_struct value);
 
     }
 }

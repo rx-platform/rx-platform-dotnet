@@ -1,6 +1,7 @@
 ﻿using ENSACO.RxPlatform.Attributes;
 using ENSACO.RxPlatform.Hosting.Common;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
@@ -22,9 +23,35 @@ namespace ENSACO.RxPlatform.Hosting.Common
         }
         unsafe internal static bool ConvertValueFromRxUuid(ref typed_value_type val, ref Guid value)
         {
+            rx_uuid_t uuid = new rx_uuid_t();
+            if (CommonInterface.rx_get_uuid_value(ref val, 0, out uuid) > 0)
+            {
+                byte[] bytes = new byte[16];
+                unsafe
+                {
+                    for (int i = 0; i < 16; i++)
+                    {
+                        bytes[i] = uuid.bytes[i];
+                    }
+                }
+                value = new Guid(bytes);
+                return true;
+            }
             return false;
         }
-        
+        unsafe internal static bool ConvertValueFromRxTime(ref typed_value_type val, ref DateTime value)
+        {
+            rx_time_struct time = new rx_time_struct();
+            if (CommonInterface.rx_get_time_value(ref val, 0, out time) > 0)
+            {
+                long ft = (long)time.t_value;
+                value = DateTime.FromFileTimeUtc(ft);
+                return true;
+            }
+
+            return false;
+        }
+
         unsafe internal static bool ConvertValueFromRxFloat(ref typed_value_type val, ref double value)
         {
             double temp = 0;
@@ -269,6 +296,26 @@ namespace ENSACO.RxPlatform.Hosting.Common
                         }
                         return false;
                     }
+                    case rx_value_t.Time:
+                    {
+                        DateTime sb = new DateTime();
+                        if (ConvertValueFromRxTime(ref val, ref sb))
+                        {
+                            value = sb;
+                            return true;
+                        }
+                        return false;
+                    }
+                    case rx_value_t.Uuid:
+                    {
+                        Guid sb = new Guid();
+                        if (ConvertValueFromRxUuid(ref val, ref sb))
+                        {
+                            value = sb;
+                            return true;
+                        }
+                        return false;
+                    }
 
             }
             if (CommonInterface.rx_get_bool_value(ref val, 0, out temp) > 0)
@@ -388,6 +435,36 @@ namespace ENSACO.RxPlatform.Hosting.Common
             }
             return false;
         }
+        unsafe internal static bool ConvertToRxValue(DateTime value, ref typed_value_type val)
+        {
+            var ft = value.ToFileTimeUtc();
+            rx_time_struct timeStruct = new rx_time_struct();
+            timeStruct.t_value = (ulong)ft;
+            if (CommonInterface.rx_init_time_value(ref val, timeStruct) > 0)
+            {
+                return true;
+            }
+            return false;
+        }
+        unsafe internal static bool ConvertToRxValue(Guid value, ref typed_value_type val)
+        {
+            var array = value.ToByteArray();
+            unsafe
+            {
+                rx_uuid_t* uuidStruct = (rx_uuid_t*)Marshal.AllocHGlobal(sizeof(rx_uuid_t));
+                for (int i = 0; i < 16; i++)
+                {
+                    uuidStruct->bytes[i] = array[i];
+                }
+
+                if (CommonInterface.rx_init_uuid_value(ref val, ref *uuidStruct) > 0)
+                {
+                    Marshal.FreeHGlobal((IntPtr)uuidStruct);
+                    return true;
+                }
+            }
+            return false;
+        }
 
         internal static bool ConvertToRxValue(object? value, out typed_value_type val)
         {
@@ -444,6 +521,14 @@ namespace ENSACO.RxPlatform.Hosting.Common
             else if (value is string str)
             {
                 return ConvertToRxValue(str, ref val);
+            }
+            else if (value is Guid uuid)
+            {
+                return ConvertToRxValue(uuid, ref val);
+            }
+            else if (value is DateTime dt)
+            {
+                return ConvertToRxValue(dt, ref val);
             }
             else if(value.GetType().GetCustomAttribute<RxPlatformDataType>()!=null)
             {

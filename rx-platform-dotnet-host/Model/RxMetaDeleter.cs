@@ -115,6 +115,10 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     {
                         if (objType.Meta.whose == hostLib)
                         {
+                            if (objType.Meta.runtimeType && RxMetaData.Instance.StructRuntimes.RegisteredConstructors.ContainsKey(objType.Meta.id))
+                            {
+                                RxMetaData.Instance.StructRuntimes.RegisteredConstructors.Remove(objType.Meta.id);
+                            }
                             RxMetaData.Instance.StructTypes.Remove(typeName);
                             toDelete.Add(new DeletingTypeInfo
                             {

@@ -134,7 +134,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             }
             else if (propType == typeof(DateTime))
             {
-                rxValue.type = rx_value_t.Int64;
+                rxValue.type = rx_value_t.Time;
                 if (value == null)
                     rxValue.val = null;
                 else
@@ -258,6 +258,14 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
         static private bool IsVariableType(Type type)
         {
             if (type.IsGenericType && type.GetCustomAttribute<RxPlatformVariableType>() != null)
+            {
+                return true;
+            }
+            return false;
+        }
+        static private bool IsEventType(Type type)
+        {
+            if (type.GetCustomAttribute<RxPlatformEventType>() != null)
             {
                 return true;
             }
@@ -474,7 +482,6 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
         }
         static internal PropertyInfo[] GetSimplePropertyInfos(Type type, bool includeStructs)
         {
-
             List<PropertyInfo> ret = new List<PropertyInfo>();
             var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (var prop in propertyInfos)
@@ -523,6 +530,10 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                             ret.Add(prop);
                         }
                         else if (IsVariableType(prop.PropertyType))
+                        {
+                            ret.Add(prop);
+                        }
+                        else if (IsEventType(prop.PropertyType))
                         {
                             ret.Add(prop);
                         }

@@ -8,12 +8,15 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <EnableUnmanagedExports>true</EnableUnmanagedExports>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <Version>1.7.4</Version>
+    <Version>2.0.0</Version>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>{rx-platform} .NET Core Host</Title>
     <Authors>ENSACO Solutions doo</Authors>
     <Company>ENSACO Solutions doo</Company>
     <Product>{rx-platform}</Product>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright (c) 2026 ENSACO Solutions doo</Copyright>
+    <PackageProjectUrl>http://rx-platform.org/</PackageProjectUrl>
     <Description>Package that {rx-platform} uses as .NET Core hosting library.</Description>
     <PackageIcon>rx-platform-256.png</PackageIcon>
   </PropertyGroup>
