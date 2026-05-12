@@ -3,6 +3,7 @@ using ENSACO.RxPlatform.Hosting.Model.Code;
 using ENSACO.RxPlatform.Hosting.Model.Items;
 using ENSACO.RxPlatform.Hosting.Reflection;
 using ENSACO.RxPlatform.Model;
+using ENSACO.RxPlatform.Runtime;
 using System.Reflection;
 using System.Text;
 
@@ -46,7 +47,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                         initOnly = requiredModifiers.Contains(typeof(System.Runtime.CompilerServices.IsExternalInit));
                     }
                     string defaultValue = "default";
-                    defaultValue = RxMemoryCompiler.ValueToSourceCode(prop.GetValue(instance), propType);
+                    defaultValue = RxMemoryCompiler.ValueToSourceCode(prop.GetValue(instance), propType, -1);
 
                     RxOwnRelationCodeData data = new RxOwnRelationCodeData()
                     {
@@ -86,14 +87,35 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     objType.valid = false;
                     continue;
                 }
-                object? instance = objType.defaultConstructor();
+                object? instance = objType.defaultConstructor(null);
                 if (instance == null)
                 {
                     objType.valid = false;
                     continue;
                 }
-                var props = ReflectionHelpers.GetRelationsPropertyInfos(objType.type, true);
-                var relations = GetItems(objType.type, props, instance, ref objType.relationValues);
+                Type? instanceType = objType.type;
+                Dictionary<string, PropertyInfo> propertyInfos = new Dictionary<string, PropertyInfo>();
+                while (instanceType != null)
+                {
+                    var props = ReflectionHelpers.GetRelationsPropertyInfos(instanceType, true);
+                    if (props != null)
+                    {
+                        foreach (var m in props)
+                        {
+                            if (!propertyInfos.ContainsKey(m.Name))
+                            {
+                                propertyInfos.Add(m.Name, m);
+                            }
+                        }
+                    }
+                    instanceType = instanceType.BaseType;
+                    if (instanceType == null || (instanceType.BaseType != null && instanceType.BaseType == typeof(RxPlatformRuntimeBase)))
+                    {
+                        break;
+                    }
+                }
+                var relations = GetItems(objType.type, propertyInfos.Values.ToArray(), instance
+                    , ref objType.relationValues);
                 if (relations == null)
                 {
                     objType.valid = false;

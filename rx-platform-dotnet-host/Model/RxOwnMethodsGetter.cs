@@ -6,8 +6,10 @@ using ENSACO.RxPlatform.Hosting.Model.Code;
 using ENSACO.RxPlatform.Hosting.Model.Items;
 using ENSACO.RxPlatform.Hosting.Reflection;
 using ENSACO.RxPlatform.Model;
+using ENSACO.RxPlatform.Runtime;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.JavaScript;
 
 namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
 {
@@ -47,7 +49,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     {
                         if (parmsInfo[0].HasDefaultValue)
                         {
-                            argDefaultValue = RxMemoryCompiler.ValueToSourceCode(parmsInfo[0].DefaultValue, paramType);
+                            argDefaultValue = RxMemoryCompiler.ValueToSourceCode(parmsInfo[0].DefaultValue, paramType, -1);
                         }
                         argTypeName = paramType.FullName;
                         Type? argType = ReflectionHelpers.GetNullableType(parmsInfo[0]);
@@ -86,19 +88,17 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     }
                     else
                     {
-
-                        Type? resType = ReflectionHelpers.GetNullableType(method.ReturnParameter);
-                        if (resType != null)
+                        Type? nullType = Nullable.GetUnderlyingType(resultType);
+                        if (nullType != null)
                         {
                             resultIsNullable = true;
-                            resultTypeName = resType.FullName;
-                            resultType = resType;
+                            resultTypeName = nullType.FullName;
+                            resultType = nullType;
                         }
                         else
                         {
                             resultIsNullable = false;
                             resultTypeName = resultType.FullName;
-                            resultType = method.ReturnType;
                         }
                         resultIsJson = resultType.GetCustomAttribute<RxPlatformDataType>(false) != null;
 
@@ -186,6 +186,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     {
                         name = method.Name,
                         isNullAbleArgument = argIsNullable,
+                        isStructArgument = paramType.IsValueType,
                         argumentType = argTypeName,
                         defaultValue = argDefaultValue,
                         jsonArgument = argIsJson,
@@ -220,21 +221,56 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     objType.valid = false;
                     continue;
                 }
-                object? instance = objType.defaultConstructor();
+                object? instance = objType.defaultConstructor(null);
                 if (instance == null)
                 {
                     objType.valid = false;
                     continue;
                 }
-                var met = ReflectionHelpers.GetDefinedMethods(objType.type);
-                var methods = GetItems(met, instance);
-                if (methods == null)
+                Type? instanceType = objType.type;
+                List<RxMethodDataItem> definedMethods = new List<RxMethodDataItem>();
+                List<RxOwnMethodCodeData> definedMethodCodes = new List<RxOwnMethodCodeData>();
+                Dictionary<string, MethodInfo> methodInfos = new Dictionary<string, MethodInfo>();
+                while (instanceType != null)
                 {
-                    objType.valid = false;
-                    continue;
+                    List<MethodInfo> metToProcess = new List<MethodInfo>();
+                    var met = ReflectionHelpers.GetDefinedMethods(instanceType);
+                    if (met != null)
+                    {
+                        foreach (var m in met)
+                        {
+                            if (!methodInfos.ContainsKey(m.Name))
+                            {
+                                metToProcess.Add(m);
+                                methodInfos[m.Name] = m;
+                            }
+                        }
+                    }
+                    var methods = GetItems(metToProcess.ToArray(), instance);
+                    if (methods == null)
+                    {
+                        objType.valid = false;
+                        break;
+                    }
+                    if(instanceType == objType.type)
+                    {
+                        definedMethods.AddRange(methods.Item1);
+                        definedMethodCodes.AddRange(methods.Item2);
+                    }
+                    else
+                    {
+                        definedMethodCodes.AddRange(methods.Item2);
+                    }
+                    instanceType = instanceType.BaseType;
+                    if(instanceType == null || (instanceType.BaseType!=null && instanceType.BaseType == typeof(RxPlatformRuntimeBase)))
+                    {
+                        break;
+                    }
                 }
-                objType.methods = methods.Item1.ToArray();
-                objType.definedMethods = methods.Item2.ToArray();
+                if (!objType.valid)
+                    continue;
+                objType.methods = definedMethods.ToArray();
+                objType.definedMethods = definedMethodCodes.ToArray();
                 data[kvp.Key] = objType;
             }
         }

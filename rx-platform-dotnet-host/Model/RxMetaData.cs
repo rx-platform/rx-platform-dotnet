@@ -7,9 +7,31 @@ using ENSACO.RxPlatform.Model;
 using ENSACO.RxPlatform.Runtime;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
 
 namespace ENSACO.RxPlatform.Hosting.Model
 {
+    public class WeakDelegate<TDelegate> where TDelegate : Delegate
+    {
+        private readonly WeakReference _targetRef;
+        private readonly MethodInfo _method;
+
+        public WeakDelegate(object inst, MethodInfo method)
+        {
+            // Store the target weakly and keep the MethodInfo
+            _targetRef = new WeakReference(inst);
+            _method = method;
+        }
+
+        public TDelegate? GetDelegate()
+        {
+            object? target = _targetRef.Target;
+            if (target == null && !_method.IsStatic) return null;
+
+            // Recreate the delegate bound to the current target instance
+            return (TDelegate)Delegate.CreateDelegate(typeof(TDelegate), target, _method);
+        }
+    }
 
     struct PlatformInstanceData
     {
@@ -53,21 +75,24 @@ namespace ENSACO.RxPlatform.Hosting.Model
     }
 
 #pragma warning restore CS0649
-
+    class RuntimeConstructorWrapper
+    {
+    }
     internal struct PlatformRuntimeData
     {
         internal string path;
         internal RxNodeId nodeId;
         internal GCHandle objectRuntime;
         internal IntPtr nativeRuntimePtr;
-        internal Action? startedMethod;
-        internal Action? stoppedMethod;
+        internal WeakDelegate<Action>? startedMethod;
+        internal WeakDelegate<Action>? stoppedMethod;
         internal Dictionary<string, Func<Task<HttpResponseMessage>, HttpRequestMessage>[]>? handleRequests;
         internal SourceWriteMethods sourceWriteMethods;
+        internal TaskCompletionSource? initCompleted;
     }
     struct RuntimeConstructionData
     {
-        internal Func<object?> constructor;
+        internal Func<string?, object?>? constructor;
         internal MethodInfo? startMethod;
         internal MethodInfo? stopMethod;
         internal byte[]? initialValues;
@@ -97,7 +122,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
     }
     struct PlatformTypeBuildMeta<T> where T : RxPlatformTypeAttribute
     {
-        internal Func<object?>? defaultConstructor;
+        internal Func<string?, object?>? defaultConstructor;
         //internal ConstructorInfo? defaultConstructor;
         internal RxMetaItem[] items;
         internal RxRelationDataItem[] relations;
@@ -113,7 +138,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal RxNodeId parentId;
         internal bool definedType;
         internal bool runtimeType;
-        internal Func<object?>? runtimeConstructor;
+        internal Func<string?, object?>? runtimeConstructor;
         internal MethodInfo? startMethod;
         internal MethodInfo? stopMethod;
         internal RxPropertyCodeData[] definedProperties;
@@ -134,7 +159,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
     }
     struct PlatformDataTypeBuildMeta
     {
-        internal Func<object?>? defaultConstructor;
+        internal Func<string?, object?>? defaultConstructor;
         //internal ConstructorInfo? defaultConstructor;
         internal RxDataItem[] items;
         internal RxPlatformDataType? attribute;

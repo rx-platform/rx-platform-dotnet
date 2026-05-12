@@ -2,6 +2,13 @@
 
 namespace ENSACO.RxPlatform.Attributes
 {
+    [System.AttributeUsage(System.AttributeTargets.All, AllowMultiple = false, Inherited = false)]
+    public class RxPlatformIgnoreAttribute : Attribute
+    {
+        public RxPlatformIgnoreAttribute()
+        {
+        }
+    }
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class RxPlatformLibrary : Attribute
     {
@@ -68,8 +75,8 @@ namespace ENSACO.RxPlatform.Attributes
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class RxPlatformObjectType : RxPlatformTypeAttribute
     {
-        public RxPlatformObjectType(string nodeId, string directory = "", string name = "")
-            : base(nodeId, directory, name)
+        public RxPlatformObjectType(string nodeId, string directory = "", string name = "", string parentId = "")
+            : base(nodeId, directory, name, parentId)
         {
         }
     }
@@ -101,8 +108,8 @@ namespace ENSACO.RxPlatform.Attributes
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class RxPlatformStructType : RxPlatformTypeAttribute
     {
-        public RxPlatformStructType(string nodeId, string directory = "", string name = "")
-            : base(nodeId, directory, name)
+        public RxPlatformStructType(string nodeId, string directory = "", string name = "", string parentId = "")
+            : base(nodeId, directory, name, parentId)
         {
         }
     }
@@ -111,8 +118,8 @@ namespace ENSACO.RxPlatform.Attributes
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class RxPlatformMapperType : RxPlatformTypeAttribute
     {
-        public RxPlatformMapperType(string nodeId, string directory = "", string name = "")
-            : base(nodeId, directory, name)
+        public RxPlatformMapperType(string nodeId, string directory = "", string name = "", string parentId = "")
+            : base(nodeId, directory, name, parentId)
         {
         }
     }
@@ -150,8 +157,8 @@ namespace ENSACO.RxPlatform.Attributes
     public class RxPlatformEventType : RxPlatformTypeAttribute
     {
         public Type? Arguments { get; }
-        public RxPlatformEventType(string nodeId, string directory = "", string name = "", Type? argType = null)
-            : base(nodeId, directory, name)
+        public RxPlatformEventType(string nodeId, string directory = "", string name = "", Type? argType = null, string parentId = "")
+            : base(nodeId, directory, name, parentId)
         {
             Arguments = argType;
         }
@@ -159,8 +166,8 @@ namespace ENSACO.RxPlatform.Attributes
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class RxPlatformEventType<T> : RxPlatformEventType
     {
-        public RxPlatformEventType(string nodeId, string directory = "", string name = "")
-            : base(nodeId, directory, name, typeof(T))
+        public RxPlatformEventType(string nodeId, string directory = "", string name = "", string parentId = "")
+            : base(nodeId, directory, name, typeof(T), parentId)
         {
         }
     }
@@ -177,8 +184,8 @@ namespace ENSACO.RxPlatform.Attributes
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class RxPlatformDisplayType : RxPlatformTypeAttribute
     {
-        public RxPlatformDisplayType(string nodeId, string directory = "", string name = "")
-            : base(nodeId, directory, name)
+        public RxPlatformDisplayType(string nodeId, string directory = "", string name = "", string parentId = "")
+            : base(nodeId, directory, name, parentId)
         {
         }
     }

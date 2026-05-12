@@ -87,7 +87,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     objType.valid = false;
                     continue;
                 }
-                object? instance = objType.defaultConstructor();
+                object? instance = objType.defaultConstructor(null);
                 if(instance == null)
                 {
                     objType.valid = false;
@@ -108,6 +108,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
         {
             FillTypes(data.VariableTypes);
             FillTypes(data.StructTypes);
+            FillTypes(data.EventTypes);
 
             FillTypes(data.ObjectTypes);
             FillTypes(data.PortTypes);

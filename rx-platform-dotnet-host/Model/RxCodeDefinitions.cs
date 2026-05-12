@@ -31,6 +31,7 @@
         public bool isAsync { get; set; } = false;
         public string? argumentType { get; set; } = null;
         public bool isNullAbleArgument { get; set; } = false;
+        public bool isStructArgument { get; set; } = false;
         public string? defaultValue { get; set; } = null;
         public bool jsonArgument { get; set; } = false;
         public string? resultType { get; set; } = null;

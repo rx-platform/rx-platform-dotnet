@@ -22,7 +22,7 @@ public class BucketStatus
 [RxPlatformDataType(nodeId: "1:i:201326671",  directory: "/sys/types/system",  name: "ItemChangeDetails")]
 public class ItemChangeDetails
 {
-	public DateTime TS { get; set; } = DateTime.Parse("2025-12-16T12:54:58.793");
+	public DateTime TS { get; set; } = DateTime.Parse("2026-04-06T07:38:53.868");
 	public RxNodeId Id { get; set; } = RxNodeId.FromString("");
 	public string Path { get; set; } = "";
 }
@@ -170,6 +170,7 @@ public class HttpHostNamePort : ConnectionTransportPort
 [RxPlatformPortType(nodeId: "1:i:201326673",  directory: "/sys/types/system",  name: "HttpProtocol")]
 public class HttpProtocol : ApplicationPort
 {
+	public StringBindData Bind { get; set; } = new StringBindData();
 }
 [RxPlatformObjectType(nodeId: "1:i:201326597",  directory: "/sys/types/system",  name: "IoManagerType")]
 public class IoManagerType : InternalObjectType
@@ -219,7 +220,7 @@ public class RuntimeType : InternalObjectType
 [RxPlatformPortType(nodeId: "1:i:201326729",  directory: "/sys/types/system",  name: "RxJsonClientProtocol")]
 public class RxJsonClientProtocol : ApplicationPort
 {
-	public OpcEndpointBindData Connect { get; set; } = new OpcEndpointBindData();
+	public StringBindData Connect { get; set; } = new StringBindData();
 	public new ClientPortStatusData Status { get; set; } = new ClientPortStatusData();
 }
 [RxPlatformPortType(nodeId: "1:i:201326626",  directory: "/sys/types/system",  name: "RxJsonProtocol")]
@@ -242,7 +243,7 @@ public class RxJsonProtocolClient : PortReference
 [RxPlatformPortType(nodeId: "1:i:201326864",  directory: "/sys/types/system",  name: "RxOPCProtocolAdapter")]
 public class RxOPCProtocolAdapter : TransportPort
 {
-	public OpcEndpointBindData Bind { get; set; } = new OpcEndpointBindData();
+	public StringBindData Bind { get; set; } = new StringBindData();
 }
 [RxPlatformPortType(nodeId: "1:i:201326680",  directory: "/sys/types/system",  name: "SystemHttpPort")]
 public class SystemHttpPort : TCPServerPort
@@ -253,8 +254,8 @@ public class SystemInfo
 {
 	public string Instance { get; set; } = "";
 	public string Node { get; set; } = "";
-	public DateTime StartTime { get; set; } = DateTime.Parse("2025-12-16T12:54:58.480");
-	public DateTime Time { get; set; } = DateTime.Parse("2025-12-16T12:54:58.793");
+	public DateTime StartTime { get; set; } = DateTime.Parse("2026-04-06T07:38:53.497");
+	public DateTime Time { get; set; } = DateTime.Parse("2026-04-06T07:38:53.868");
 	public string PlatformVer { get; set; } = "";
 	public string LibraryVer { get; set; } = "";
 	public string TerminalVer { get; set; } = "";
@@ -291,9 +292,16 @@ public class SystemWsJsonPort : RxJsonProtocol
 public class UnassignedThreadType : PhysicalThread
 {
 }
+[RxPlatformPortType(nodeId: "1:i:201326877",  directory: "/sys/types/system",  name: "WSClientProtocol")]
+public class WSClientProtocol : TransportPort
+{
+	public StringBindData Connect { get; set; } = new StringBindData();
+	public new ClientPortStatusData Status { get; set; } = new ClientPortStatusData();
+}
 [RxPlatformPortType(nodeId: "1:i:201326772",  directory: "/sys/types/system",  name: "WSProtocol")]
 public class WSProtocol : ConnectionTransportPort
 {
+	public StringBindData Bind { get; set; } = new StringBindData();
 }
 [RxPlatformPortType(nodeId: "1:i:201326606",  directory: "/sys/types/ports",  name: "ApplicationPort")]
 public class ApplicationPort : PortBase
@@ -463,7 +471,7 @@ public class OpcBinTransport : TransportPort
 public class OpcClientBase : ApplicationPort
 {
 	public new OpcClientOptions Options { get; set; } = new OpcClientOptions();
-	public OpcEndpointBindData Connect { get; set; } = new OpcEndpointBindData();
+	public StringBindData Connect { get; set; } = new StringBindData();
 }
 [RxPlatformPortType(nodeId: "1:i:201326745",  directory: "/sys/types/opc",  name: "OpcClientBinTransport")]
 public class OpcClientBinTransport : TransportPort
@@ -496,7 +504,7 @@ public class OpcSecBase : ConnectionTransportPort
 public class OpcServerBase : ApplicationPort
 {
 	public new OpcServerOptions Options { get; set; } = new OpcServerOptions();
-	public OpcEndpointBindData Bind { get; set; } = new OpcEndpointBindData();
+	public StringBindData Bind { get; set; } = new StringBindData();
 }
 [RxPlatformPortType(nodeId: "1:i:201326743",  directory: "/sys/types/opc",  name: "OpcSimpleBinClient")]
 public class OpcSimpleBinClient : OpcSimpleClient
@@ -723,6 +731,34 @@ public class MqttSourceBase : ExternSource
 {
 	public string Topic { get; set; } = "";
 	public byte QoS { get; set; } = 1;
+}
+[RxPlatformPortType(nodeId: "1:i:201326878",  directory: "/sys/types/knx",  name: "KnxIpPort")]
+public class KnxIpPort : ApplicationPort
+{
+	public new KnxIpPortStatus Status { get; set; } = new KnxIpPortStatus();
+	public new KnxIpPortOptions Options { get; set; } = new KnxIpPortOptions();
+}
+[RxPlatformStructType(nodeId: "1:i:201326879",  directory: "/sys/types/knx",  name: "KnxIpPortOptions")]
+public class KnxIpPortOptions : PortOptions
+{
+	public string TopicBase { get; set; } = "";
+	public uint PublishTimeBuffer { get; set; } = 50;
+	public string ClientID { get; set; } = "";
+	public ushort KeepAlive { get; set; } = 0;
+}
+[RxPlatformStructType(nodeId: "1:i:201326880",  directory: "/sys/types/knx",  name: "KnxIpPortStatus")]
+public class KnxIpPortStatus : PortStatusData
+{
+	public bool Connected { get; set; } = false;
+	public ulong Published { get; set; } = 0;
+	public ulong Received { get; set; } = 0;
+}
+[RxPlatformSourceType(nodeId: "1:i:201326881",  directory: "/sys/types/knx",  name: "KnxSource")]
+public class KnxSource : ExternSource
+{
+	public string ValuePath { get; set; } = "val";
+	public string TimePath { get; set; } = "";
+	public string QualityPath { get; set; } = "";
 }
 [RxPlatformPortType(nodeId: "1:i:201326847",  directory: "/sys/types/xml",  name: "XMLPort")]
 public class XMLPort : ApplicationPort
@@ -1067,11 +1103,6 @@ public class OpcClientOptions : PortOptions
 public class OpcClientSecChannelOptions : PortOptions
 {
 }
-[RxPlatformStructType(nodeId: "1:i:201326755",  directory: "/sys/types/support",  name: "OpcEndpointBindData")]
-public class OpcEndpointBindData
-{
-	public string Endpoint { get; set; } = "";
-}
 [RxPlatformStructType(nodeId: "1:i:201326744",  directory: "/sys/types/support",  name: "OpcSecChannelOptions")]
 public class OpcSecChannelOptions : PortOptions
 {
@@ -1175,6 +1206,11 @@ public class SimpleVariable<T>
 public class SizeLimiterPortOptions : PortOptions
 {
 	public int Limit { get; set; } = 65536;
+}
+[RxPlatformStructType(nodeId: "1:i:201326755",  directory: "/sys/types/support",  name: "StringBindData")]
+public class StringBindData
+{
+	public string Endpoint { get; set; } = "";
 }
 [RxPlatformMapperType(nodeId: "1:i:201326661",  directory: "/sys/types/support",  name: "StructuralMapper")]
 public class StructuralMapper
@@ -1321,4 +1357,4 @@ public class StaticHttpDisplayResource : HttpDisplayResource
 {
 }
 }
-// Generated on:Tuesday, December 16, 2025  2:05:54 PM
+// Generated on:Monday, April 6, 2026  9:45:49 AM

@@ -201,7 +201,10 @@ namespace ENSACO.RxPlatform.Hosting.Common
         Bytes = 16,
         Struct = 17,
         Type = 18,
-        NodeId = 19
+        NodeId = 19,
+        
+        SimpleTypeMask = 0x1F,
+        ArrayFlag = 0x80
     }
 
     [StructLayout(LayoutKind.Sequential)]

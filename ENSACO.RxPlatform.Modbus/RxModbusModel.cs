@@ -95,6 +95,7 @@ public class ModbusMasterData : PortOptions
 	public uint WriteRetries { get; set; } = 1;
 	public uint WriteRetryMin { get; set; } = 10;
 	public uint WriteRetryMax { get; set; } = 20;
+	public bool ReadDeviceId { get; set; } = true;
 }
 public class ModbusMasterRelation : PortReference
 {
@@ -195,4 +196,4 @@ public class ModbusStructMapper : ExternStructuralMapper
 	public ushort CoilAddress { get; set; } = 0;
 }
 }
-// Generated on:Tuesday, December 9, 2025  2:29:21 PM
+// Generated on:Monday, April 6, 2026  9:13:08 AM

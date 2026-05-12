@@ -154,10 +154,10 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                                 {
                                     name = prop.Name,
                                     target = new RXHostReferenceId { id = targetId },
-                                    array = array,
+                                    array = -1,
                                     ro = initOnly || !prop.CanWrite || hasPrivateSetter
                                 };
-                                item.value = ReflectionHelpers.GetVariableValue(prop, propType, value);
+                                item.value = ReflectionHelpers.GetVariableValue(prop, propType, value, array);
                                 items.Add(item);
                             }
                         }
@@ -219,10 +219,10 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                                     {
                                         name = prop.Name,
                                         ro = !prop.CanWrite || hasPrivateSetter,
-                                        array = array
+                                        array = -1
                                     };
 
-                                    item.value = ReflectionHelpers.GetValue(prop, propType, value);
+                                    item.value = ReflectionHelpers.GetValue(prop, propType, value, array);
                                     items.Add(item);
                                 }
                                 else
@@ -231,10 +231,10 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                                     {
                                         name = prop.Name,
                                         ro = initOnly,
-                                        array = array
+                                        array = -1
                                     };
 
-                                    item.value = ReflectionHelpers.GetValue(prop, propType, value);
+                                    item.value = ReflectionHelpers.GetValue(prop, propType, value, array);
                                     items.Add(item);
                                 }
                             }
@@ -316,7 +316,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     }
 
 
-                    item.value = ReflectionHelpers.GetValue(prop, propType, value);
+                    item.value = ReflectionHelpers.GetValue(prop, propType, value, array);
 
                     items.Add(item);
                 }
@@ -340,7 +340,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     objType.valid = false;
                     continue;
                 }
-                object? instance = objType.defaultConstructor();
+                object? instance = objType.defaultConstructor(null);
                 if (instance == null)
                 {
                     objType.valid = false;
@@ -374,7 +374,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     objType.valid = false;
                     continue;
                 }
-                object? instance = objType.defaultConstructor();
+                object? instance = objType.defaultConstructor(null);
                 if(instance == null)
                 {
                     objType.valid = false;
@@ -386,6 +386,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     valProperties = ReflectionHelpers.GetSimplePropertyInfos(objType.type.MakeGenericType(new Type[] { typeof(int) }), true);
                 }
                 var props = ReflectionHelpers.GetSimplePropertyInfos(objType.type, true);
+                
                 var items = GetItems(props, valProperties, instance);
                 if(items==null)
                 {

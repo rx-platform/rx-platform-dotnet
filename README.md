@@ -16,9 +16,9 @@ It enables seamless integration of various OT (Operational Technology) systems, 
 This package enables building .NET Core libraries for
 **```{rx-platform}```** and to interface the OT technologies from within. 
 
-- You can download the latest version of platform binaries from [this link](http://rx-platform.org).
+- You can download the latest version of platform binaries from [this link](https://ensaco.rs/install/rx-platform-win32-x64.exe).
 - Commercial support is available at [ENSACO Solutions doo.](https://ensaco.rs/)
-- Documentation is available at [this link](https://ensaco.rs/)
+- Documentation is available at [this link](http://rx-platform.org)
 </div>
 
 ___

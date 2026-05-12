@@ -6,6 +6,7 @@ using ENSACO.RxPlatform.Hosting.Model.Code;
 using ENSACO.RxPlatform.Hosting.Model.Items;
 using ENSACO.RxPlatform.Hosting.Reflection;
 using ENSACO.RxPlatform.Model;
+using ENSACO.RxPlatform.Runtime;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -73,14 +74,35 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     objType.valid = false;
                     continue;
                 }
-                object? instance = objType.defaultConstructor();
+                object? instance = objType.defaultConstructor(null);
                 if (instance == null)
                 {
                     objType.valid = false;
                     continue;
                 }
-                var met = ReflectionHelpers.GetStructPropertyInfos(objType.type);
-                var structs = GetItems(met, instance);
+
+                Type? instanceType = objType.type;
+                Dictionary<string, PropertyInfo> propertyInfos = new Dictionary<string, PropertyInfo>();
+                while (instanceType != null)
+                {
+                    var props = ReflectionHelpers.GetStructPropertyInfos(instanceType);
+                    if (props != null)
+                    {
+                        foreach (var m in props)
+                        {
+                            if (!propertyInfos.ContainsKey(m.Name))
+                            {
+                                propertyInfos.Add(m.Name, m);
+                            }
+                        }
+                    }
+                    instanceType = instanceType.BaseType;
+                    if (instanceType == null || (instanceType.BaseType != null && instanceType.BaseType == typeof(RxPlatformRuntimeBase)))
+                    {
+                        break;
+                    }
+                }
+                var structs = GetItems(propertyInfos.Values.ToArray(), instance);
                 if (structs == null)
                 {
                     objType.valid = false;

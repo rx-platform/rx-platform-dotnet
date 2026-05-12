@@ -1,6 +1,8 @@
 ﻿using ENSACO.RxPlatform.Attributes;
 using ENSACO.RxPlatform.Hosting.Common;
 using ENSACO.RxPlatform.Hosting.Model.Code;
+using System.Collections;
+using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
@@ -9,35 +11,70 @@ namespace ENSACO.RxPlatform.Hosting.Model
 {
     public class RxMemoryCompiler
     {
-        internal static string ValueToSourceCode(object? value, Type type)
+        internal static string ValueToSourceCode(object? value, Type type, int array)
         {
-            if (value == null)
+            if (array >= 0)
             {
-                return "null";
-            }
-            if (type == typeof(string))
-            {
-                return $"\"{value.ToString()?.Replace("\"", "\\\"")}\"";
-            }
-            else if (type == typeof(char))
-            {
-                return $"'{value}'";
-            }
-            else if (type == typeof(bool))
-            {
-                return value.ToString()!.ToLower();
-            }
-            else if (type.IsEnum)
-            {
-                return $"{type.FullName}.{value}";
-            }
-            else if (type.GetCustomAttribute<RxPlatformDataType>() != null)
-            {
-                return $"new {type.FullName}()";
+                if (array == 0 || value == null)
+                {
+                    return $"new {type.FullName}[0]";
+                }
+                else
+                {
+                    StringBuilder tempStream = new StringBuilder();
+                    tempStream.Append($"new {type.FullName}[]{{");
+                    IEnumerable? arr = value as IEnumerable;
+                    if (arr != null)
+                    {
+                        bool first = true;
+                        foreach (var item in arr)
+                        {
+                            if (!first)
+                            {
+                                tempStream.Append(",");
+                            }
+                            tempStream.Append(ValueToSourceCode(item, type, -1));
+                            first = false;
+                        }
+                    }
+                    tempStream.Append("}");
+                    return tempStream.ToString();
+                }
             }
             else
             {
-                return value.ToString()!;
+                if (value == null)
+                {
+                    return "null";
+                }
+                if (type == typeof(string))
+                {
+                    return $"\"{value.ToString()?.Replace("\"", "\\\"")}\"";
+                }
+                else if (type == typeof(char))
+                {
+                    return $"'{value}'";
+                }
+                else if (type == typeof(bool))
+                {
+                    return value.ToString()!.ToLower();
+                }
+                else if (type.IsEnum)
+                {
+                    return $"{type.FullName}.{value}";
+                }
+                else if (type.GetCustomAttribute<RxPlatformDataType>() != null)
+                {
+                    return $"new {type.FullName}()";
+                }
+                if (type == typeof(Guid))
+                {
+                    return value != null ? $"Guid.Parse(\"{value.ToString()}\")" : "null";
+                }
+                else
+                {
+                    return string.Format(CultureInfo.InvariantCulture, "{0}", value);
+                }
             }
         }
         internal const string overridePostfix = "__rxImplementation";
@@ -88,7 +125,7 @@ public class {typeName} : {typeNamespace}.{typeName}
         }
         static void GenerateTypePropertiesCode(RxPropertyCodeData[] properties, RxOwnRelationCodeData[] relations, StringBuilder stream)
         {
-            if (properties.Length == 0)
+            if (properties.Length == 0 && (relations == null || relations.Length == 0))
                 return;
 
             int index = 0;
@@ -347,8 +384,8 @@ public class {typeName} : {typeNamespace}.{typeName}
                     {eventStr}
                  }}
                 break;");
+                    index++;
                 }
-                 index++;
             }
             stream.Append(@"
         }
@@ -655,7 +692,183 @@ public class {typeName} : {typeNamespace}.{typeName}
 
             GenerateTypeFooter(stream);
         }
+        static private void GenerateOwnMethodCode(RxOwnMethodCodeData method, string resultPrefix, string resultSuffix, StringBuilder stream)
+        {
+            if (method.name == null)
+                return;
 
+            string awaitString = "";
+            string argSufix = "";
+            if (method.isAsync)
+                awaitString = "await";
+            if(method.isStructArgument)
+                argSufix = ".Value";
+            bool isVoid = method.resultType == "void" || method.resultType == typeof(Task).FullName;
+            if (string.IsNullOrEmpty(method.argumentType) && isVoid)
+            {
+                //////////////////////////////////////////////////////////////////////////
+                /// void, void method
+                //////////////////////////////////////////////////////////////////////////
+                stream.Append($@"
+                case ""{method.name}"":
+                    {{
+                        {awaitString} {method.name}();
+                        return {resultPrefix}""{{ }}""{resultSuffix};
+                    }}
+");
+            }
+            else if (!string.IsNullOrEmpty(method.argumentType) && isVoid)
+            {
+                //////////////////////////////////////////////////////////////////////////
+                /// non-void, void method
+                //////////////////////////////////////////////////////////////////////////
+                if (method.isNullAbleArgument)
+                {
+                    stream.Append($@"
+                case ""{method.name}"":
+                    {{
+                        {method.argumentType}? argObj = JsonSerializer.Deserialize<{method.argumentType}>(args, __jsonContext);
+                        {awaitString} {method.name}(argObj);
+                        return {resultPrefix}""{{ }}""{resultSuffix};
+                    }}
+");
+                }
+                else
+                {// non-null-able argument
+                    
+                        stream.Append($@"
+                case ""{method.name}"":
+                    {{
+                        {method.argumentType}? argObj = JsonSerializer.Deserialize<{method.argumentType}>(args, __jsonContext);
+                        if(argObj == null)
+                        {{
+                            argObj = new {method.argumentType}();
+                        }}
+                        {awaitString} {method.name}(argObj{argSufix});
+                        return {resultPrefix}""{{ }}""{resultSuffix};
+                    }}
+");
+                }
+            }
+            else if (string.IsNullOrEmpty(method.argumentType) && !isVoid)
+            {
+                //////////////////////////////////////////////////////////////////////////
+                /// void, non-void method
+                //////////////////////////////////////////////////////////////////////////
+                if (method.isNullAbleResult)
+                {
+                    stream.Append($@"
+                case ""{method.name}"":
+                    {{
+                        var result = {awaitString} {method.name}();
+                        if(result == null)
+                        {{
+                            return ""{{ }}"";
+                        }}
+                        else
+                        {{
+                            return {resultPrefix}JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
+                        }}
+                    }}
+");
+                }
+                else
+                {
+                    stream.Append($@"
+                case ""{method.name}"":
+                    {{
+                        var result = {awaitString} {method.name}();
+                        return {resultPrefix}JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
+                    }}
+");
+                }
+            }
+
+            else if (!string.IsNullOrEmpty(method.argumentType) && !isVoid)
+            {
+                //////////////////////////////////////////////////////////////////////////
+                /// non-void, non-void method
+                //////////////////////////////////////////////////////////////////////////
+
+                if (method.isNullAbleResult)
+                {
+                    if (method.isNullAbleArgument)
+                    {
+                        string methodArgFull = method.isNullAbleArgument ? method.argumentType + "?" : method.argumentType;
+                        stream.Append($@"
+                case ""{method.name}"":
+                    {{
+                        {method.argumentType}? argObj = JsonSerializer.Deserialize<{method.argumentType}>(args, __jsonContext);
+                        var result = {awaitString} {method.name}(argObj);
+                        if(result == null)
+                        {{
+                            return {resultPrefix}""{{ }}""{resultSuffix};
+                        }}
+                        else
+                        {{
+                            return {resultPrefix}JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
+                        }}
+                    }}
+                    break;
+");
+                    }
+                    else
+                    {// non-null-able argument
+
+                        stream.Append($@"
+                case ""{method.name}"":
+                    {{
+                        {method.argumentType}? argObj = JsonSerializer.Deserialize<{method.argumentType}>(args, __jsonContext);
+                        if(argObj == null)
+                        {{
+                            argObj = new {method.argumentType}();
+                        }}
+                        var result = {awaitString} {method.name}(argObj{argSufix});
+                        if(result == null)
+                        {{
+                            return {resultPrefix}""{{ }}""{resultSuffix};
+                        }}
+                        else
+                        {{
+                            return {resultPrefix}JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
+                        }}
+                    }}
+");
+                    }
+                }
+                else
+                {// non-null-able result
+                    if (method.isNullAbleArgument)
+                    {
+                        stream.Append($@"
+                case ""{method.name}"":
+                    {{
+                        var result = {awaitString} {method.name}();
+                        return {resultPrefix}(JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
+                    }}
+                    break;
+");
+                    }
+                    else
+                    {// non-null-able argument
+
+                        stream.Append($@"
+                case ""{method.name}"":
+                    {{
+                        {method.argumentType}? argObj = JsonSerializer.Deserialize<{method.argumentType}>(args, __jsonContext);
+                        if(argObj == null)
+                        {{
+                            argObj = new {method.argumentType}();
+                        }}
+                        var result = {awaitString} {method.name}(argObj{argSufix});
+                        return {resultPrefix}(JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix});
+                    }}
+                    break;
+");
+                    }
+                }
+            }
+        }
         internal static void GenerateObjectTypeSourceCode(PlatformTypeBuildMeta<RxPlatformObjectType> type, StringBuilder stream)
         {
             string typeName = type.name;
@@ -689,117 +902,7 @@ public class {typeName} : {typeNamespace}.{typeName}
 ");
                 foreach (var method in type.definedMethods)
                 {
-                    if (method.name == null)
-                        continue;
-
-                    string awaitString = "";
-                    if (method.isAsync)
-                        awaitString = "await";
-                    bool isVoid = method.resultType == "void" || method.resultType == typeof(Task).FullName;
-                    if (string.IsNullOrEmpty(method.argumentType) && isVoid)
-                    {
-                        //////////////////////////////////////////////////////////////////////////
-                        /// void, void method
-                        //////////////////////////////////////////////////////////////////////////
-                        stream.Append($@"
-                case ""{method.name}"":
-                    {{
-                        {awaitString} {method.name}();
-                        return {resultPrefix}""{{ }}""{resultSuffix};
-                    }}
-                    break;
-");
-                    }
-                    else if (!string.IsNullOrEmpty(method.argumentType) && isVoid)
-                    {
-                        //////////////////////////////////////////////////////////////////////////
-                        /// non-void, void method
-                        //////////////////////////////////////////////////////////////////////////
-
-                        stream.Append($@"
-                case ""{method.name}"":
-                    {{
-                        {method.argumentType}? argObj = JsonSerializer.Deserialize<{method.argumentType}>(args, __jsonContext);
-                        {awaitString} {method.name}(argObj);
-                        return {resultPrefix}""{{ }}""{resultSuffix};
-                    }}
-                    break;
-");
-                    }
-                    else if (string.IsNullOrEmpty(method.argumentType) && !isVoid)
-                    {
-                        //////////////////////////////////////////////////////////////////////////
-                        /// void, non-void method
-                        //////////////////////////////////////////////////////////////////////////
-                        if (method.isNullAbleResult)
-                        {
-                            stream.Append($@"
-                case ""{method.name}"":
-                    {{
-                        var result = {awaitString} {method.name}();
-                        if(result == null)
-                        {{
-                            return ""{{ }}"";
-                        }}
-                        else
-                        {{
-                            return {resultPrefix}JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
-                        }}
-                    }}
-                    break;
-");
-                        }
-                        else
-                        {
-                            stream.Append($@"
-                case ""{method.name}"":
-                    {{
-                        var result = {awaitString} {method.name}();
-                        return {resultPrefix}JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
-                    }}
-                    break;
-");
-                        }
-                    }
-
-                    else if (!string.IsNullOrEmpty(method.argumentType) && !isVoid)
-                    {
-                        //////////////////////////////////////////////////////////////////////////
-                        /// non-void, non-void method
-                        //////////////////////////////////////////////////////////////////////////
-
-                        if (method.isNullAbleResult)
-                        {
-                            string methodArgFull = method.isNullAbleArgument ? method.argumentType + "?" : method.argumentType;
-                            stream.Append($@"
-                case ""{method.name}"":
-                    {{
-                        {method.argumentType}? argObj = JsonSerializer.Deserialize<{method.argumentType}>(args, __jsonContext);
-                        var result = {awaitString} {method.name}(argObj);
-                        if(result == null)
-                        {{
-                            return {resultPrefix}""{{ }}""{resultSuffix};
-                        }}
-                        else
-                        {{
-                            return {resultPrefix}JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
-                        }}
-                    }}
-                    break;
-");
-                        }
-                        else
-                        {
-                            stream.Append($@"
-                case ""{method.name}"":
-                    {{
-                        var result = {awaitString} {method.name}();
-                        return {resultPrefix}(JsonSerializer.Serialize<{method.resultType}>(result, __jsonContext){resultSuffix};
-                    }}
-                    break;
-");
-                        }
-                    }
+                    GenerateOwnMethodCode(method, resultPrefix, resultSuffix, stream);
                 }
 
                 stream.Append($@"

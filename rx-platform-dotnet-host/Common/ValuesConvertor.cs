@@ -180,150 +180,466 @@ namespace ENSACO.RxPlatform.Hosting.Common
 
         unsafe internal static bool ConvertValueFromRx(ref typed_value_type val, ref object? value)
         {
-            int temp = 0;
-            switch(val.value_type)
+            if (CommonInterface.rx_is_array_value(ref val) != 0)
             {
-                case rx_value_t.Null:
-                    value = null;
-                    return true;
-                case rx_value_t.String:
+                ulong size = 0;
+                if(CommonInterface.rx_get_array_size(ref val, out size) > 0)
+                {
+                    rx_value_t simple_tpe = (rx_value_t)((byte)val.value_type & (byte)rx_value_t.SimpleTypeMask);
+                    object? retVal  = null;
+                    switch (simple_tpe)
                     {
-                        string? str = string.Empty;
-                        if (ConvertValueFromRxString(ref val, ref str))
-                        {
-                            value = str;
+                        case rx_value_t.Null:
+                            value = null;
                             return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.Double:
-                    {
-                        double d = 0;
-                        if (ConvertValueFromRxFloat(ref val, ref d))
-                        {
-                            value = d;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.Float:
-                    {
-                        float f = 0;
-                        if (ConvertValueFromRxFloat(ref val, ref f))
-                        {
-                            value = f;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.UInt64:
-                    {
-                        ulong ul = 0;
-                        if (ConvertValueFromRxUInt(ref val, ref ul))
-                        {
-                            value = ul;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.UInt32:
-                    {
-                        uint ui = 0;
-                        if (ConvertValueFromRxUInt(ref val, ref ui))
-                        {
-                            value = ui;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.UInt16:
-                    {
-                        ushort us = 0;
-                        if (ConvertValueFromRxUInt(ref val, ref us))
-                        {
-                            value = us;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.UInt8:
-                    {
-                        byte b = 0;
-                        if (ConvertValueFromRxUInt(ref val, ref b))
-                        {
-                            value = b;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.Int64:
-                    {
-                        long l = 0;
-                        if (ConvertValueFromRxInt(ref val, ref l))
-                        {
-                            value = l;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.Int32:
-                    {
-                        int i = 0;
-                        if (ConvertValueFromRxInt(ref val, ref i))
-                        {
-                            value = i;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.Int16:
-                    {
-                        short s = 0;
-                        if (ConvertValueFromRxInt(ref val, ref s))
-                        {
-                            value = s;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.Int8:
-                    {
-                        sbyte sb = 0;
-                        if (ConvertValueFromRxInt(ref val, ref sb))
-                        {
-                            value = sb;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.Time:
-                    {
-                        DateTime sb = new DateTime();
-                        if (ConvertValueFromRxTime(ref val, ref sb))
-                        {
-                            value = sb;
-                            return true;
-                        }
-                        return false;
-                    }
-                    case rx_value_t.Uuid:
-                    {
-                        Guid sb = new Guid();
-                        if (ConvertValueFromRxUuid(ref val, ref sb))
-                        {
-                            value = sb;
-                            return true;
-                        }
-                        return false;
-                    }
+                        case rx_value_t.String:
+                            {
+                                retVal = new string[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref temp_val, ref val) > 0)
+                                        {
+                                            string str = string.Empty;
+                                            if (ConvertValueFromRxString(ref temp_val, ref str))
+                                            {
+                                                ((string[])retVal)[i] = str;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.Double:
+                            {
+                                retVal = new double[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            double d = 0;
+                                            if (ConvertValueFromRxFloat(ref temp_val, ref d))
+                                            {
+                                                ((double[])retVal)[i] = d;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.Float:
+                            {
+                                retVal = new float[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            float f = 0;
+                                            if (ConvertValueFromRxFloat(ref temp_val, ref f))
+                                            {
+                                                ((float[])retVal)[i] = f;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.UInt64:
+                            {
+                                retVal = new ulong[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            ulong ul = 0;
+                                            if (ConvertValueFromRxUInt(ref temp_val, ref ul))
+                                            {
+                                                ((ulong[])retVal)[i] = ul;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.UInt32:
+                            {
+                                retVal = new uint[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            uint ui = 0;
+                                            if (ConvertValueFromRxUInt(ref temp_val, ref ui))
+                                            {
+                                                ((uint[])retVal)[i] = ui;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.UInt16:
+                            {
+                                retVal = new ushort[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            ushort us = 0;
+                                            if (ConvertValueFromRxUInt(ref temp_val, ref us))
+                                            {
+                                                ((ushort[])retVal)[i] = us;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.UInt8:
+                            {
+                                retVal = new byte[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            byte b = 0;
+                                            if (ConvertValueFromRxUInt(ref temp_val, ref b))
+                                            {
+                                                ((byte[])retVal)[i] = b;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.Int64:
+                            {
+                                retVal = new long[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            long l = 0;
+                                            if (ConvertValueFromRxInt(ref temp_val, ref l))
+                                            {
+                                                ((long[])retVal)[i] = l;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.Int32:
+                            {
+                                retVal = new int[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            int iv = 0;
+                                            if (ConvertValueFromRxInt(ref temp_val, ref iv))
+                                            {
+                                                ((int[])retVal)[i] = iv;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.Int16:
+                            {
+                                retVal = new short[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            short s = 0;
+                                            if (ConvertValueFromRxInt(ref temp_val, ref s))
+                                            {
+                                                ((short[])retVal)[i] = s;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.Int8:
+                            {
+                                retVal = new sbyte[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            sbyte sb = 0;
+                                            if (ConvertValueFromRxInt(ref temp_val, ref sb))
+                                            {
+                                                ((sbyte[])retVal)[i] = sb;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.Bool:
+                            {
+                                retVal = new bool[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            bool bo = false;
+                                            if (ConvertValueFromRxBool(ref temp_val, ref bo))
+                                            {
+                                                ((bool[])retVal)[i] = bo;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.Time:
+                            {
+                                retVal = new DateTime[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            DateTime dt = new DateTime();
+                                            if (ConvertValueFromRxTime(ref temp_val, ref dt))
+                                            {
+                                                ((DateTime[])retVal)[i] = dt;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
+                        case rx_value_t.Uuid:
+                            {
+                                retVal = new Guid[size];
+                                if (size > 0)
+                                {
+                                    for (ulong i = 0; i < size; i++)
+                                    {
+                                        typed_value_type temp_val = new typed_value_type();
+                                        if (CommonInterface.rx_get_array_value(i, ref val, ref temp_val) > 0)
+                                        {
+                                            Guid uuid = new Guid();
+                                            if (ConvertValueFromRxUuid(ref temp_val, ref uuid))
+                                            {
+                                                ((Guid[])retVal)[i] = uuid;
+                                            }
+                                        }
+                                    }
+                                }
+                                value = retVal;
+                                return true;
+                            }
 
+                    }
+                    
+                    // Handle array conversion here
+                }
+                return false;
             }
-            if (CommonInterface.rx_get_bool_value(ref val, 0, out temp) > 0)
+            else
             {
-                value = temp != 0;
-                return true;
+                int temp = 0;
+                switch (val.value_type)
+                {
+                    case rx_value_t.Null:
+                        value = null;
+                        return true;
+                    case rx_value_t.String:
+                        {
+                            string? str = string.Empty;
+                            if (ConvertValueFromRxString(ref val, ref str))
+                            {
+                                value = str;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.Double:
+                        {
+                            double d = 0;
+                            if (ConvertValueFromRxFloat(ref val, ref d))
+                            {
+                                value = d;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.Float:
+                        {
+                            float f = 0;
+                            if (ConvertValueFromRxFloat(ref val, ref f))
+                            {
+                                value = f;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.UInt64:
+                        {
+                            ulong ul = 0;
+                            if (ConvertValueFromRxUInt(ref val, ref ul))
+                            {
+                                value = ul;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.UInt32:
+                        {
+                            uint ui = 0;
+                            if (ConvertValueFromRxUInt(ref val, ref ui))
+                            {
+                                value = ui;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.UInt16:
+                        {
+                            ushort us = 0;
+                            if (ConvertValueFromRxUInt(ref val, ref us))
+                            {
+                                value = us;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.UInt8:
+                        {
+                            byte b = 0;
+                            if (ConvertValueFromRxUInt(ref val, ref b))
+                            {
+                                value = b;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.Int64:
+                        {
+                            long l = 0;
+                            if (ConvertValueFromRxInt(ref val, ref l))
+                            {
+                                value = l;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.Int32:
+                        {
+                            int i = 0;
+                            if (ConvertValueFromRxInt(ref val, ref i))
+                            {
+                                value = i;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.Int16:
+                        {
+                            short s = 0;
+                            if (ConvertValueFromRxInt(ref val, ref s))
+                            {
+                                value = s;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.Int8:
+                        {
+                            sbyte sb = 0;
+                            if (ConvertValueFromRxInt(ref val, ref sb))
+                            {
+                                value = sb;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.Time:
+                        {
+                            DateTime sb = new DateTime();
+                            if (ConvertValueFromRxTime(ref val, ref sb))
+                            {
+                                value = sb;
+                                return true;
+                            }
+                            return false;
+                        }
+                    case rx_value_t.Uuid:
+                        {
+                            Guid sb = new Guid();
+                            if (ConvertValueFromRxUuid(ref val, ref sb))
+                            {
+                                value = sb;
+                                return true;
+                            }
+                            return false;
+                        }
+
+                }
+                if (CommonInterface.rx_get_bool_value(ref val, 0, out temp) > 0)
+                {
+                    value = temp != 0;
+                    return true;
+                }
+                return false;
             }
-            return false;
         }
 
 

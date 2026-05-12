@@ -155,7 +155,6 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     whose = buildMeta.whose,
                     startMethod = buildMeta.startMethod,
                     stopMethod = buildMeta.stopMethod,
-
                     path = buildMeta.path,
                     name = buildMeta.name,
                     id = buildMeta.id,
@@ -442,7 +441,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             byte[]? initialValues = null;
                             if (kvp.Value.defaultConstructor != null)
                             {
-                                RxPlatformObjectRuntime? def = kvp.Value.defaultConstructor() as RxPlatformObjectRuntime;
+                                RxPlatformObjectRuntime? def = kvp.Value.defaultConstructor(null) as RxPlatformObjectRuntime;
                                 if (def != null)
                                 {
                                     MemoryStream ms = new MemoryStream();
@@ -501,7 +500,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             byte[]? initialValues = null;
                             if (kvp.Value.defaultConstructor!=null)
                             {
-                                RxPlatformStructRuntime? def = kvp.Value.defaultConstructor() as RxPlatformStructRuntime;
+                                RxPlatformStructRuntime? def = kvp.Value.defaultConstructor(null) as RxPlatformStructRuntime;
                                 if(def!=null)
                                 {
                                     MemoryStream ms = new MemoryStream();
@@ -533,7 +532,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             byte[]? initialValues = null;
                             if (kvp.Value.defaultConstructor != null)
                             {
-                                RxPlatformMapperRuntime? def = kvp.Value.defaultConstructor() as RxPlatformMapperRuntime;
+                                RxPlatformMapperRuntime? def = kvp.Value.defaultConstructor(null) as RxPlatformMapperRuntime;
                                 if (def != null)
                                 {
                                     MemoryStream ms = new MemoryStream();
@@ -573,7 +572,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             byte[]? initialValues = null;
                             if (kvp.Value.defaultConstructor != null)
                             {
-                                RxPlatformSourceRuntime? def = kvp.Value.defaultConstructor() as RxPlatformSourceRuntime;
+                                RxPlatformSourceRuntime? def = kvp.Value.defaultConstructor(null) as RxPlatformSourceRuntime;
                                 if (def != null)
                                 {
                                     MemoryStream ms = new MemoryStream();
@@ -606,7 +605,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             byte[]? initialValues = null;
                             if (kvp.Value.defaultConstructor != null)
                             {
-                                RxPlatformEventRuntime? def = kvp.Value.defaultConstructor() as RxPlatformEventRuntime;
+                                RxPlatformEventRuntime? def = kvp.Value.defaultConstructor(null) as RxPlatformEventRuntime;
                                 if (def != null)
                                 {
                                     MemoryStream ms = new MemoryStream();
@@ -639,7 +638,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             byte[]? initialValues = null;
                             if (kvp.Value.defaultConstructor != null)
                             {
-                                RxPlatformDisplayRuntime? def = kvp.Value.defaultConstructor() as RxPlatformDisplayRuntime;
+                                RxPlatformDisplayRuntime? def = kvp.Value.defaultConstructor(null) as RxPlatformDisplayRuntime;
                                 if (def != null)
                                 {
                                     MemoryStream ms = new MemoryStream();
@@ -675,6 +674,14 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         RxMetaData.Instance.DataTypes.Add(kvp.Key
                             , ConvertData(kvp.Value));
                     }
+                }
+            }
+            else
+            {
+                // no types so just register the library without any types
+                lock (RxMetaData.Instance.TypesLock)
+                {
+                    RxMetaData.Instance.HostedLibraries.Add(assembly, hostLib);
                 }
             }
             return ret;

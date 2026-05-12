@@ -1,4 +1,5 @@
-﻿using ENSACO.RxPlatform.Model;
+﻿using ENSACO.RxPlatform.Attributes;
+using ENSACO.RxPlatform.Model;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -121,6 +122,9 @@ namespace ENSACO.RxPlatform.Runtime
     public class RxPlatformRuntimeBase
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public TaskCompletionSource? __initSource = null;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         static protected JsonSerializerOptions __jsonContext = new JsonSerializerOptions { };
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -164,11 +168,32 @@ namespace ENSACO.RxPlatform.Runtime
         {
             foreach (var value in values)
             {
-                var propInfo = this.GetType().GetProperty(value.Item1);
-                if (propInfo != null && propInfo.CanWrite)
-                {
-                    var underlyingType = Nullable.GetUnderlyingType(propInfo.PropertyType);
-                    propInfo.SetValue(this, Convert.ChangeType(value.Item2, underlyingType ?? propInfo.PropertyType));
+                if (value.Item2 != null)
+                { 
+                    var propInfo = this.GetType().GetProperty(value.Item1);
+                    if (propInfo != null && propInfo.CanWrite)
+                    {
+                        var underlyingType = Nullable.GetUnderlyingType(propInfo.PropertyType);
+                        Type propType = underlyingType != null ? underlyingType : propInfo.PropertyType;
+                        if (propType.GetCustomAttribute<RxPlatformDataType>() != null)
+                        {
+                            string jsonStr = value.Item2 as string ?? "{ }";
+                            var convertedValue = JsonSerializer.Deserialize(jsonStr, propType, __jsonContext);
+                            propInfo.SetValue(this, convertedValue);
+                        }
+                        else
+                        {
+                            if (!propType.IsAssignableFrom(value.Item2.GetType()))
+                            {
+                                // type mismatch, try to convert
+                                var convertedValue = ConvertObject(value.Item2, propType);
+                                if (convertedValue != null)
+                                {
+                                    propInfo.SetValue(this, convertedValue);
+                                }
+                            }
+                        }
+                    }
                 }
             }
             string fieldName;
@@ -180,6 +205,10 @@ namespace ENSACO.RxPlatform.Runtime
                 {
                     fieldInfo.SetValue(this, value.Value);
                 }
+            }
+            if (__initSource != null)
+            {
+                __initSource.SetResult();
             }
         }
         protected virtual void __rxValueCallback(int index, object? value)
@@ -199,31 +228,50 @@ namespace ENSACO.RxPlatform.Runtime
         {
             JsonSerializer.Serialize(writer, this, this.GetType(), __jsonContext);
         }
-        public void __rxStructDeserialize(ref Utf8JsonReader reader)
-        {
-            var obj = JsonSerializer.Deserialize(ref reader, this.GetType(), __jsonContext);
-            if (obj != null)
-            {
-                foreach (var prop in this.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
-                {
-                    var strSrc = prop.GetValue(obj) as RxPlatformStructRuntime;
-                    if (strSrc != null)
-                    {
-                        var strRt = prop.GetValue(this) as RxPlatformStructRuntime;
-                        if (strRt != null)
-                        {
-                            MemoryStream ms = new MemoryStream();
-                            Utf8JsonWriter writer = new Utf8JsonWriter(ms);
-                            strSrc.__rxStructSerialize(writer);
-                            writer.Flush();
-                            ms.Position = 0;
-                            Utf8JsonReader tempReader = new Utf8JsonReader(ms.ToArray());
-                            strRt.__rxStructDeserialize(ref tempReader);
-                        }
-                    }
-                }
-            }
-        }
+        //public void __rxStructDeserialize(ref Utf8JsonReader reader)
+        //{
+        //    var obj = JsonSerializer.Deserialize(ref reader, this.GetType(), __jsonContext);
+        //    if (obj != null)
+        //    {
+        //        foreach (var prop in this.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
+        //        {
+        //            var strSrc = prop.GetValue(obj) as RxPlatformStructRuntime;
+        //            if (strSrc != null)
+        //            {
+        //                var strRt = prop.GetValue(this) as RxPlatformStructRuntime;
+        //                if (strRt != null)
+        //                {
+        //                    MemoryStream ms = new MemoryStream();
+        //                    Utf8JsonWriter writer = new Utf8JsonWriter(ms);
+        //                    strSrc.__rxStructSerialize(writer);
+        //                    writer.Flush();
+        //                    ms.Position = 0;
+        //                    Utf8JsonReader tempReader = new Utf8JsonReader(ms.ToArray());
+        //                    strRt.__rxStructDeserialize(ref tempReader);
+        //                }
+        //            }
+        //            else
+        //            {
+
+        //                var eventSrc = prop.GetValue(obj) as RxPlatformEventRuntime;
+        //                if (eventSrc != null)
+        //                {
+        //                    var eventRt = prop.GetValue(this) as RxPlatformEventRuntime;
+        //                    if (eventRt != null)
+        //                    {
+        //                        MemoryStream ms = new MemoryStream();
+        //                        Utf8JsonWriter writer = new Utf8JsonWriter(ms);
+        //                        eventSrc.__rxStructSerialize(writer);
+        //                        writer.Flush();
+        //                        ms.Position = 0;
+        //                        Utf8JsonReader tempReader = new Utf8JsonReader(ms.ToArray());
+        //                        eventRt.__rxStructDeserialize(ref tempReader);
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
         internal RxNodeId id = new RxNodeId();
         internal string? name = null;
         internal string path = "";
@@ -491,7 +539,28 @@ namespace ENSACO.RxPlatform.Runtime
                         localId = this.id;
                 }
                 if (!localId.IsNull() && __runtimeFunctions.UnregisterRuntimes != null)
-                    __runtimeFunctions.UnregisterRuntimes(RxType, GetType(), this, name, path, localId);
+                {
+                    try
+                    {
+                        // fire and forget
+                        _ = __runtimeFunctions.UnregisterRuntimes(RxType, GetType(), this, name, path, localId);
+                    }
+                    catch (NullReferenceException)
+                    {
+                        // This should only happen if the runtime functions were not properly initialized
+#if DEBUG
+                        System.Diagnostics.Debug.Assert(false);
+#endif
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // this one i don't care
+                    }
+                    catch (Exception)
+                    {
+                        // Log the exception or handle it as needed
+                    }
+                }
             }
             GC.SuppressFinalize(this);
         }
@@ -506,7 +575,28 @@ namespace ENSACO.RxPlatform.Runtime
                         localId = this.id;
                 }
                 if (!localId.IsNull())
-                    await __runtimeFunctions.UnregisterRuntimes(RxType, GetType(), this, name, path, localId);
+                {
+                    if(__initSource != null)
+                    {
+                        __initSource.TrySetResult();
+                    }
+                    try
+                    {
+                        await __runtimeFunctions.UnregisterRuntimes(RxType, GetType(), this, name, path, localId);
+                    }
+                    catch (NullReferenceException)
+                    {
+                        // This should only happen if the runtime functions were not properly initialized
+#if DEBUG
+                        System.Diagnostics.Debug.Assert(false);
+#endif
+                    }
+                    catch (Exception)
+                    {
+                        // Log the exception or handle it as needed
+                        System.Diagnostics.Debug.Assert(false);
+                    }
+                }
             }
             GC.SuppressFinalize(this);
         }
@@ -544,8 +634,13 @@ namespace ENSACO.RxPlatform.Runtime
                 }
                 instance = await __runtimeFunctions.RegisterRuntimes(5/*rx_object*/, prototype, name, path, id) as T;
                 if (instance != null)
+                {
                     instance.name = name;
-
+                    if(instance.__initSource != null)
+                    {
+                        await instance.__initSource.Task;
+                    }
+                }
             }
             return instance;
         }

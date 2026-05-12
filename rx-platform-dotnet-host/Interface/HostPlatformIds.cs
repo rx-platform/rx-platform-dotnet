@@ -51,6 +51,7 @@ namespace ENSACO.RxPlatform.Hosting.Internal
 
         // dotnet runtimes
         public static readonly uint RX_DOTNET_APPLICATION_ID = 0xc000118;
+        public static readonly uint RX_DOTNET_DOMAIN_ID = 0xc000122;
 
     }
 }

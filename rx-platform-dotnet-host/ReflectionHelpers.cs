@@ -6,37 +6,79 @@ using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace ENSACO.RxPlatform.Hosting.Reflection
 {
 
     internal static class ReflectionHelpers
     {
-        private static Func<T> CreateInstance<T>() where T : new()
+        internal static Type[] GetBaseRuntimeTypes(Type type)
         {
-            // This pattern can be cached in a static dictionary for performance if needed.
-
-            // 1. Get the constructor information for the type T with no parameters.
-            ConstructorInfo? constructorInfo = typeof(T).GetConstructor(Type.EmptyTypes);
-
-            if (constructorInfo == null)
+            List<Type> baseTypes = new List<Type>();
+            Type? currentType = type;
+            while (currentType != null && currentType != typeof(object))
             {
-                // If the type is a value type (like int or a struct), use Expression.Default
-                if (typeof(T).IsValueType)
+                baseTypes.Add(currentType);
+                currentType = currentType.BaseType;
+                if(currentType == null || currentType.BaseType!=null && currentType.BaseType == typeof(RxPlatformRuntimeBase))
                 {
-                    return Expression.Lambda<Func<T>>(Expression.Default(typeof(T))).Compile();
+                    break;
                 }
-                throw new InvalidOperationException($"The type {typeof(T).Name} must have a parameterless constructor.");
             }
-
-            // 2. Create a NewExpression that represents calling the constructor.
-            NewExpression newExpression = Expression.New(constructorInfo);
-
-            // 3. Create a Lambda expression, compile it into a delegate, and return it.
-            Func<T> function = Expression.Lambda<Func<T>>(newExpression).Compile();
-            return function;
+            if(baseTypes.Count == 0)
+            {
+                return Array.Empty<Type>();
+            }
+            Type[] retval = new Type[baseTypes.Count];
+            for (int i= baseTypes.Count - 1; i >= 0 ; i--)
+            {
+                retval[i]= baseTypes[i];
+            }
+            return retval;
         }
-        static internal Func<object>? CreateConstructorFunc(Type type)
+        static internal Func<string?, object?>? CreateConstructorFunc(Type type)
+        {
+            Func<string?, object?>? ctorFunc = (string? initial) =>
+            {
+                if(string.IsNullOrEmpty(initial))
+                {
+                    var defaultCtor = CreateConstructorFuncDefault(type);
+                    if (defaultCtor != null)
+                    {
+                        return defaultCtor();
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+                else
+                {
+                    JsonSerializerOptions options = new JsonSerializerOptions
+                    {                        
+                        UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip,
+                        TypeInfoResolver = new DefaultJsonTypeInfoResolver
+                        {
+                            Modifiers = { (JsonTypeInfo typeInfo) => {
+                                foreach (var property in typeInfo.Properties) {
+                                    // Logic to check type and ignore if necessary
+                                    if (IsElemntToSkip(property))
+                                    { 
+                                        property.Set = null; // Effectively ignores during deserialization
+                                    }
+                                }
+                            }}
+                        }
+                    };
+                    return JsonSerializer.Deserialize(initial, type, options);
+                }
+            };
+            return ctorFunc;
+        }
+        static internal Func<object>? CreateConstructorFuncDefault(Type type)
         {
 
             if (type.IsGenericType)
@@ -68,13 +110,21 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                 }
                 else
                 {
-                    NewExpression newExp = Expression.New(type);
-                    var lambda = Expression.Lambda<Func<object>>(newExp);
-                    return lambda.Compile();
+                    if(type.IsValueType)
+                    {
+                        var lambda = Expression.Lambda<Func<object>>(Expression.Convert(Expression.New(ctor), typeof(object)));
+                        return lambda.Compile();
+                    }
+                    else
+                    {
+                        NewExpression newExp = Expression.New(type);
+                        var lambda = Expression.Lambda<Func<object>>(newExp);
+                        return lambda.Compile();
+                    }
                 }
             }
         }
-        internal static RxHostValueType GetVariableValue(PropertyInfo prop, Type propType, object? value)
+        internal static RxHostValueType GetVariableValue(PropertyInfo prop, Type propType, object? value, int array)
         {
             RxHostValueType rxValue = new RxHostValueType();
             if (value != null)
@@ -83,143 +133,639 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                 if (varProp != null)
                 {
                     var varVal = varProp.GetValue(value);
-                    rxValue = GetValue(varProp, varProp.PropertyType, varVal);
+                    rxValue = GetValue(varProp, varProp.PropertyType, varVal, array);
                 }
             }
             // Implement logic to extract variable value from the property
             return rxValue;
         }
-        internal static RxHostValueType GetValue(PropertyInfo prop, Type propType, object? value)
+        private static object? GetSimpleValue(PropertyInfo prop, Type propType, object? value)
         {
-            RxHostValueType rxValue = new RxHostValueType();
-            if (propType == typeof(bool))
+            object? rxVal = null;
+            switch (propType)
             {
-                rxValue.type = rx_value_t.Bool;
-                if (value == null)
-                    rxValue.val = false;
-                else
-                    rxValue.val = (bool?)value;
+                case Type t when t == typeof(bool):
+                    rxVal = value == null ? false : (bool?)value;
+                    break;
+                case Type t when t == typeof(string):
+                    rxVal = value == null ? "" : (string?)value;
+                    break;
+                case Type t when t == typeof(float):
+                    rxVal = value == null ? 0.0f : (float?)value;
+                    break;
+                case Type t when t == typeof(double):
+                    rxVal = value == null ? 0.0 : (double?)value;
+                    break;
+                case Type t when t == typeof(char):
+                    rxVal = value == null ? (sbyte)0 : (sbyte?)(sbyte)(char?)value;
+                    break;
+                case Type t when t == typeof(DateTime):
+                    rxVal = value == null ? null : (DateTime?)value;
+                    break;
+                case Type t when t == typeof(Guid):
+                    rxVal = (value == null ? Guid.Empty : (Guid)value).ToString();
+                    break;
+                case Type t when t == typeof(sbyte):
+                    rxVal = value == null ? (sbyte)0 : (sbyte?)value;
+                    break;
+                case Type t when t == typeof(short):
+                    rxVal = value == null ? (short)0 : (short?)value;
+                    break;
+                case Type t when t == typeof(int):
+                    rxVal = value == null ? (int)0 : (int?)value;
+                    break;
+                case Type t when t == typeof(long):
+                    rxVal = value == null ? (long)0 : (long?)value;
+                    break;
+                case Type t when t == typeof(byte):
+                    rxVal = value == null ? (byte)0 : (byte?)value;
+                    break;
+                case Type t when t == typeof(ushort):
+                    rxVal = value == null ? (ushort)0 : (ushort?)value;
+                    break;
+                case Type t when t == typeof(uint):
+                    rxVal = value == null ? (uint)0 : (uint?)value;
+                    break;
+                case Type t when t == typeof(ulong):
+                    rxVal = value == null ? (ulong)0 : (ulong?)value;
+                    break;
+                default:
+                    throw new Exception($"Unsupported property type {prop.PropertyType.FullName} for property {prop.Name}");
             }
-            else if (propType == typeof(string))
+            return rxVal;
+        }
+        internal static RxHostValueType GetValue(PropertyInfo prop, Type propType, object? value, int array)
+        {
+            if (array >= 0)
             {
-                rxValue.type = rx_value_t.String;
-                if (value == null)
-                    rxValue.val = "";
-                else
-                    rxValue.val = (string?)value;
-            }
-            else if (propType == typeof(float))
-            {
-                rxValue.type = rx_value_t.Float;
-                if (value == null)
-                    rxValue.val = 0.0f;
-                else
-                    rxValue.val = (float?)value;
-            }
-            else if (propType == typeof(double))
-            {
-                rxValue.type = rx_value_t.Double;
-                if (value == null)
-                    rxValue.val = 0.0;
-                else
-                    rxValue.val = (double?)value;
-            }
-            else if (propType == typeof(char))
-            {
-                rxValue.type = rx_value_t.Int8;
-                if (value == null)
-                    rxValue.val = (sbyte)0;
-                else
-                    rxValue.val = (sbyte?)(sbyte)(char?)value;
-            }
-            else if (propType == typeof(DateTime))
-            {
-                rxValue.type = rx_value_t.Time;
-                if (value == null)
-                    rxValue.val = null;
-                else
-                    rxValue.val = (DateTime?)value;
-            }
-            else if (propType == typeof(Guid))
-            {
-                rxValue.type = rx_value_t.Uuid;
-                Guid guid;
-                if (value == null)
-                    guid = Guid.Empty;
-                else
-                    guid = (Guid)value;
-
-                rxValue.val = guid.ToString();
-            }
-            else if (propType == typeof(sbyte))
-            {
-                rxValue.type = rx_value_t.Int8;
-                if (value == null)
-                    rxValue.val = (sbyte)0;
-                else
-                    rxValue.val = (sbyte?)value;
-            }
-            else if (propType == typeof(short))
-            {
-                rxValue.type = rx_value_t.Int16;
-                if (value == null)
-                    rxValue.val = (short)0;
-                else
-                    rxValue.val = (short?)value;
-            }
-            else if (propType == typeof(int))
-            {
-                rxValue.type = rx_value_t.Int32;
-                if (value == null)
-                    rxValue.val = (int)0;
-                else
-                    rxValue.val = (int?)value;
-            }
-            else if (propType == typeof(long))
-            {
-                rxValue.type = rx_value_t.Int64;
-                if (value == null)
-                    rxValue.val = (long)0;
-                else
-                    rxValue.val = (long?)value;
-            }
-            else if (propType == typeof(byte))
-            {
-                rxValue.type = rx_value_t.UInt8;
-                if (value == null)
-                    rxValue.val = (byte)0;
-                else
-                    rxValue.val = (byte?)value;
-            }
-            else if (propType == typeof(ushort))
-            {
-                rxValue.type = rx_value_t.UInt16;
-                if (value == null)
-                    rxValue.val = (ushort)0;
-                else
-                    rxValue.val = (ushort?)value;
-            }
-            else if (propType == typeof(uint))
-            {
-                rxValue.type = rx_value_t.UInt32;
-                if (value == null)
-                    rxValue.val = (uint)0;
-                else
-                    rxValue.val = (uint?)value;
-            }
-            else if (propType == typeof(ulong))
-            {
-                rxValue.type = rx_value_t.UInt64;
-                if (value == null)
-                    rxValue.val = (ulong)0;
-                else
-                    rxValue.val = (ulong?)value;
+                RxHostValueType rxValue = new RxHostValueType();
+                switch (propType)
+                {
+                    case Type t when t == typeof(bool):
+                        {
+                            rxValue.type = rx_value_t.Bool | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new bool[0];
+                            }
+                            else
+                            {
+                                bool[] arr = new bool[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is bool && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = false;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (bool)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of bool but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(string):
+                        {
+                            rxValue.type = rx_value_t.String | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new string[0];
+                            }
+                            else
+                            {
+                                string[] arr = new string[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is string && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = "";
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (string)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of string but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(float):
+                        {
+                            rxValue.type = rx_value_t.Float | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new float[0];
+                            }
+                            else
+                            {
+                                float[] arr = new float[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is float && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = 0.0f;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (float)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of float but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(double):
+                        {
+                            rxValue.type = rx_value_t.Double | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new double[0];
+                            }
+                            else
+                            {
+                                double[] arr = new double[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is double && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = 0.0;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (double)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of double but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(sbyte):
+                        {
+                            rxValue.type = rx_value_t.Int8 | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new sbyte[0];
+                            }
+                            else
+                            {
+                                sbyte[] arr = new sbyte[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is sbyte && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = 0;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (sbyte)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of sbyte but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(short):
+                        {
+                            rxValue.type = rx_value_t.Int16 | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new short[0];
+                            }
+                            else
+                            {
+                                short[] arr = new short[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is short && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = 0;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (short)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of short but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(int):
+                        {
+                            rxValue.type = rx_value_t.Int32 | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new int[0];
+                            }
+                            else
+                            {
+                                int[] arr = new int[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is int && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = 0;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (int)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of int but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(long):
+                        {
+                            rxValue.type = rx_value_t.Int64 | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new long[0];
+                            }
+                            else
+                            {
+                                long[] arr = new long[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is long && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = 0;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (long)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of long but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(byte):
+                        {
+                            rxValue.type = rx_value_t.UInt8 | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new byte[0];
+                            }
+                            else
+                            {
+                                byte[] arr = new byte[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is byte && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = 0;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (byte)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of byte but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(ushort):
+                        {
+                            rxValue.type = rx_value_t.UInt16 | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new ushort[0];
+                            }
+                            else
+                            {
+                                ushort[] arr = new ushort[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is ushort && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = 0;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (ushort)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of ushort but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(uint):
+                        {
+                            rxValue.type = rx_value_t.UInt32 | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new uint[0];
+                            }
+                            else
+                            {
+                                uint[] arr = new uint[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is uint && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = 0;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (uint)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of uint but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(ulong):
+                        {
+                            rxValue.type = rx_value_t.UInt64 | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new ulong[0];
+                            }
+                            else
+                            {
+                                ulong[] arr = new ulong[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is ulong && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = 0;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (ulong)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of ulong but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(DateTime):
+                        {
+                            rxValue.type = rx_value_t.Time | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new DateTime[0];
+                            }
+                            else
+                            {
+                                DateTime[] arr = new DateTime[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is DateTime && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = DateTime.MinValue;
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (DateTime)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of DateTime but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    case Type t when t == typeof(Guid):
+                        {
+                            rxValue.type = rx_value_t.Uuid | rx_value_t.ArrayFlag;
+                            if (value == null || array == 0)
+                            {
+                                rxValue.val = new string[0];
+                            }
+                            else
+                            {
+                                string[] arr = new string[array];
+                                int idx = 0;
+                                foreach (var item in (IEnumerable)value)
+                                {
+                                    if (item is Guid && idx < array)
+                                    {
+                                        object? tempVal = GetSimpleValue(prop, propType, (object?)item);
+                                        if (tempVal == null)
+                                        {
+                                            arr[idx] = Guid.Empty.ToString();
+                                        }
+                                        else
+                                        {
+                                            arr[idx] = (string)tempVal;
+                                        }
+                                        idx++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Expected an array of Guid but got an array of {item.GetType().FullName} for property {prop.Name}");
+                                    }
+                                }
+                                rxValue.val = arr;
+                            }
+                        }
+                        break;
+                    default:
+                        throw new Exception($"Unsupported property type {prop.PropertyType.FullName} for property {prop.Name}");
+                }
+                return rxValue;
             }
             else
             {
-                throw new Exception($"Unsupported property type {prop.PropertyType.FullName} for property {prop.Name}");
+                RxHostValueType rxValue = new RxHostValueType();
+                switch (propType)
+                {
+                    case Type t when t == typeof(bool):
+                        rxValue.type = rx_value_t.Bool;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(string):
+                        rxValue.type = rx_value_t.String;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(float):
+                        rxValue.type = rx_value_t.Float;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(double):
+                        rxValue.type = rx_value_t.Double;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(char):
+                        rxValue.type = rx_value_t.Int8;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(DateTime):
+                        rxValue.type = rx_value_t.Time;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(Guid):
+                        rxValue.type = rx_value_t.Uuid;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(sbyte):
+                        rxValue.type = rx_value_t.Int8;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(short):
+                        rxValue.type = rx_value_t.Int16;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(int):
+                        rxValue.type = rx_value_t.Int32;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(long):
+                        rxValue.type = rx_value_t.Int64;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(byte):
+                        rxValue.type = rx_value_t.UInt8;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(ushort):
+                        rxValue.type = rx_value_t.UInt16;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(uint):
+                        rxValue.type = rx_value_t.UInt32;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    case Type t when t == typeof(ulong):
+                        rxValue.type = rx_value_t.UInt64;
+                        rxValue.val = GetSimpleValue(prop, propType, value);
+                        break;
+                    default:
+                        throw new Exception($"Unsupported property type {prop.PropertyType.FullName} for property {prop.Name}");
+                }
+                return rxValue;
             }
-            return rxValue;
         }
         static bool IsEnumerableType(Type type)
         {
@@ -339,6 +885,11 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (var prop in propertyInfos)
             {
+                var ignoreAttr = prop.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 var relAttr = prop.GetCustomAttribute<RxPlatformRelationAttribute>();
                 if (relAttr != null)
                 {
@@ -362,12 +913,37 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             }
             return ret.ToArray();
         }
+        static internal bool IsElemntToSkip(JsonPropertyInfo type)
+        {
+            Type? propType = Nullable.GetUnderlyingType(type.PropertyType);
+            if (propType == null)
+            {
+                propType = type.PropertyType;
+            }
+            if (propType.IsSubclassOf(typeof(RxPlatformRuntimeBase)))
+            {
+                return true;
+            }
+            if (type.AttributeProvider!=null)
+            {
+                if(type.AttributeProvider.IsDefined(typeof(RxPlatformRelationAttribute), false))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         static internal PropertyInfo[] GetRelationsPropertyInfos(Type type, bool ownOnly)
         {
             List<PropertyInfo> ret = new List<PropertyInfo>();
             var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (var prop in propertyInfos)
             {
+                var ignoreAttr = prop.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 if (prop.DeclaringType != type)
                 {
                     continue;
@@ -432,16 +1008,27 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                     if (genericArguments.Length == 1 && genericArguments[0] == prop.PropertyType
                         && eventInfo.EventHandlerType.FullName != null)
                     {
+                        string? arg = genericArguments[0].FullName;
+                        Type? nulTpe = GetNullableType(prop);
+                        if (nulTpe != null)
+                        {
+                            arg = nulTpe.FullName;
+                        }
                         var idx = eventInfo.EventHandlerType.FullName.IndexOf('`');
                         if (idx != -1)
                         {
-                            typeName = $"{eventInfo.EventHandlerType.FullName.Substring(0, idx)}<{genericArguments[0].FullName}?>";
+                            typeName = $"{eventInfo.EventHandlerType.FullName.Substring(0, idx)}<{arg}?>";
                         }
                         else
                         {
                             return null;
                         }
                     }
+                }
+                var addMethod = eventInfo.GetAddMethod();
+                if(addMethod == null || !addMethod.IsPublic || !addMethod.IsVirtual || addMethod.IsFinal)
+                {
+                    return null;
                 }
                 var method = eventInfo.EventHandlerType.GetMethod("Invoke");
                 if (method != null && method.ReturnType == typeof(void))
@@ -486,6 +1073,11 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (var prop in propertyInfos)
             {
+                var ignoreAttr = prop.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 if (prop.DeclaringType == type)
                 {
                     Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
@@ -533,7 +1125,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                         {
                             ret.Add(prop);
                         }
-                        else if (IsEventType(prop.PropertyType))
+                        else if (includeStructs && IsEventType(prop.PropertyType))
                         {
                             ret.Add(prop);
                         }
@@ -553,6 +1145,11 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (var prop in propertyInfos)
             {
+                var ignoreAttr = prop.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 if (prop.DeclaringType == type)
                 {
                     Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
@@ -577,6 +1174,11 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (var prop in propertyInfos)
             {
+                var ignoreAttr = prop.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 if (prop.DeclaringType == type)
                 {
                     Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
@@ -600,6 +1202,11 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (var prop in propertyInfos)
             {
+                var ignoreAttr = prop.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 if (prop.DeclaringType == type)
                 {
                     Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
@@ -624,6 +1231,11 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (var prop in propertyInfos)
             {
+                var ignoreAttr = prop.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 if (prop.DeclaringType == type)
                 {
                     Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
@@ -648,6 +1260,11 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (var prop in propertyInfos)
             {
+                var ignoreAttr = prop.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 if (prop.DeclaringType == type)
                 {
                     Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
@@ -660,6 +1277,13 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                         if (null != prop.PropertyType.GetCustomAttribute<RxPlatformStructType>())
                         {
                             ret.Add(prop);
+                        }
+                        else
+                        {
+                            if (null != prop.PropertyType.GetCustomAttribute<RxPlatformEventType>())
+                            {
+                                ret.Add(prop);
+                            }
                         }
                     }
                 }
@@ -700,6 +1324,11 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
             foreach (var method in methodInfos)
             {
+                var ignoreAttr = method.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 if (method.DeclaringType != type)
                 {
                     continue;
@@ -721,7 +1350,10 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                 }
                 if (parmsInfo != null && parmsInfo.Length == 1)
                 {
-                    paramType = Nullable.GetUnderlyingType(parmsInfo[0].ParameterType);
+                    paramType = parmsInfo[0].ParameterType;
+                    var nullparam = Nullable.GetUnderlyingType(parmsInfo[0].ParameterType);
+                    if(nullparam != null)
+                        paramType = nullparam;
                 }
 
                 returnType = Nullable.GetUnderlyingType(method.ReturnType);
@@ -781,6 +1413,11 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
             foreach (var method in methodInfos)
             {
+                var ignoreAttr = method.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 if (method.DeclaringType != type)
                 {
                     continue;
@@ -810,6 +1447,11 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             var methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
             foreach (var method in methodInfos)
             {
+                var ignoreAttr = method.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
                 if (method.DeclaringType != type)
                 {
                     continue;

@@ -4,6 +4,10 @@ using ENSACO.RxPlatform.Hosting.Internal;
 using ENSACO.RxPlatform.Hosting.Model;
 using ENSACO.RxPlatform.Hosting.Runtime;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
+using System.Runtime.Loader;
+using System.Text;
 
 namespace ENSACO.RxPlatform.Hosting
 {
@@ -22,8 +26,8 @@ namespace ENSACO.RxPlatform.Hosting
         Assembly? assembly = null;
         MethodInfo? deinitializeMethod = null;
         MethodInfo? startMethod = null;
-        RxAssemblyLoadContext? loadContext = null;
-        internal RxAssemblyLoadContext? GetLoadContext()
+        AssemblyLoadContext? loadContext = null;
+        internal AssemblyLoadContext? GetLoadContext()
         {
             return loadContext;
         }
@@ -53,16 +57,54 @@ namespace ENSACO.RxPlatform.Hosting
         {
             return assemblyName;
         }
-        internal bool InitializeAssembly(string pt)
+        public bool IsDotNetAssembly(string path)
         {
+            try
+            {
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var peReader = new PEReader(fs);
+                if (!peReader.HasMetadata) return false;
 
-            RxAssemblyLoadContext context = new RxAssemblyLoadContext(pt);
+                var reader = peReader.GetMetadataReader();
+                return reader.IsAssembly; // True if it contains an assembly manifest
+            }
+            catch(Exception)
+            {
+                return false;
+            }
+        }
+        internal bool InitializeAssembly(string pt, bool lib)
+        {
+            if (!IsDotNetAssembly(pt))
+                return false;
+            AssemblyLoadContext? context = null;
+            Assembly? asm = null;
+            byte[] buffer = Array.Empty<byte>();
 
-            byte[] buffer = System.IO.File.ReadAllBytes(pt); // Pre-load to avoid file lock issues
+            if (!lib)
+            {
+                context = new RxAssemblyLoadContext(pt);
 
-            MemoryStream stream = new MemoryStream(buffer);
+                buffer = System.IO.File.ReadAllBytes(pt); // Pre-load to avoid file lock issues
 
-            var asm = context.LoadFromStream(stream);
+                MemoryStream stream = new MemoryStream(buffer);
+
+                asm = context.LoadFromStream(stream);
+
+            }
+            else
+            {
+                try
+                {
+                    asm = Assembly.LoadFrom(pt);
+                    context = AssemblyLoadContext.GetLoadContext(asm);
+                }
+                catch (Exception ex)
+                {
+                    RxPlatformObject.Instance.WriteLogError("HostPluginMain.InitializeAssembly", 100, $"Failed to load assembly {Path.GetFileName(pt)}: {ex.Message}");
+                    return false;
+                }   
+            }
 
             Assembly? temp = null;
             PlatformLibraryInfo? tempInfo = null;
@@ -88,7 +130,7 @@ namespace ENSACO.RxPlatform.Hosting
                     deinitializeMethod = type.GetMethod("Deinitialize", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
                     if (initializeMethod != null && deinitializeMethod != null)
                     {
-                        object? retVal = initializeMethod.Invoke(null, null);
+                        object? retVal = initializeMethod.Invoke(null, new object[] { Path.GetDirectoryName(pt) });
                         if (retVal != null && retVal is PlatformLibraryInfo)
                         {
                             if (temp != null)

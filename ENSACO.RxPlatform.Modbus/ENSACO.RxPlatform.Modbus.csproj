@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
     <EnableUnmanagedExports>false</EnableUnmanagedExports>
-    <Version>2.0.0</Version>
+    <Version>3.3.1</Version>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>{rx-platform} .NET Modbus Library</Title>
     <Authors>ENSACO Solutions doo</Authors>
@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ENSACO.RxPlatform" Version="1.7.4" />
+    <PackageReference Include="ENSACO.RxPlatform" Version="3.2.0" />
   </ItemGroup>
 
   <ItemGroup>

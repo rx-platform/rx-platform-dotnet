@@ -233,7 +233,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if(type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         if(type.runtimeType)
@@ -275,7 +275,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
@@ -315,7 +315,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
@@ -355,7 +355,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
@@ -394,7 +394,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
@@ -620,7 +620,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
@@ -660,7 +660,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
@@ -727,7 +727,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
@@ -780,7 +780,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
@@ -860,7 +860,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
@@ -912,7 +912,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
@@ -964,7 +964,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
                 {
-                    var tempObj = type.defaultConstructor.Invoke();
+                    var tempObj = type.defaultConstructor.Invoke(null);
                     if (tempObj != null)
                     {
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);

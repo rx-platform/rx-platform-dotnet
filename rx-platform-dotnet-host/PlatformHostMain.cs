@@ -5,6 +5,7 @@ using ENSACO.RxPlatform.Hosting.Runtime;
 using ENSACO.RxPlatform.Hosting.Threading;
 using ENSACO.RxPlatform.Model;
 using ENSACO.RxPlatform.Runtime;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
@@ -38,6 +39,35 @@ namespace ENSACO.RxPlatform.Hosting
             return null;
         }
     }
+
+    public class RxPlatformApplicationConfiguration
+    {
+        public bool IsApp(string path)
+        {
+            foreach(var one in RunAssemblies)
+            {
+                if (path.Contains(one))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        public int GetIndex(string path)
+        {
+            int index = 0;
+            foreach (var one in RunAssemblies)
+            {
+                if (path.Contains(one))
+                {
+                    return index;
+                }
+                index++;
+            }
+            return -1;
+        }               
+        public string[] RunAssemblies { get; set; } = Array.Empty<string>();
+    }
     public static class PlatformHostMain
     {
 
@@ -46,7 +76,6 @@ namespace ENSACO.RxPlatform.Hosting
         };
         static Assembly? CurrentDomain_AssemblyResolve(object? sender, ResolveEventArgs args)
         {
-
             // Example: Custom logic to find and load the assembly
             // In a real scenario, you might load from a specific path, a database, etc.
             if (args.Name.StartsWith("NonExistentAssembly"))
@@ -78,7 +107,8 @@ namespace ENSACO.RxPlatform.Hosting
         public unsafe static rx_result_struct InitPlatformHosting(IntPtr apiPtr,
             uint host_stream_version,
             uint* plugin_stream_version,
-            IntPtr assemblies, uint count, string_value_struct* version, int options)
+            char* app_file,
+            IntPtr libs, uint lcount, IntPtr assemblies, uint count, string_value_struct* version, int options)
         {
             if((options&0x1)!=0)
             {
@@ -93,6 +123,22 @@ namespace ENSACO.RxPlatform.Hosting
             };
 
             api.Init(ref napi);
+
+            string? appFileStr = Marshal.PtrToStringUTF8((IntPtr)app_file);
+            if(appFileStr == null) {
+                throw new Exception("Failed to read application configuration file path.");
+            }
+            string? appConfigStr = File.ReadAllText(appFileStr);
+            if(appConfigStr == null) 
+            {
+                throw new Exception("Failed to read application configuration file.");
+            }
+            var applicationConfig = JsonSerializer.Deserialize<RxPlatformApplicationConfiguration>(appConfigStr, JsonContext);
+            if(applicationConfig == null) {
+                throw new Exception("Failed to deserialize application configuration.");
+            }
+
+
 
 
             RxPlatformObjectRuntime.__InitRuntime(
@@ -153,19 +199,20 @@ namespace ENSACO.RxPlatform.Hosting
             rx_result_struct result = new rx_result_struct();
 
             AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-
             try
             {
-                IntPtr* assemblyArray = (IntPtr*)assemblies;
-                for (uint i = 0; i < count; i++)
+                IntPtr* assemblyArray = (IntPtr*)libs;
+                for (uint i = 0; i < lcount; i++)
                 {
                     string? path = Marshal.PtrToStringUTF8(assemblyArray[i]);
-                    if (path != null)
+                    
+                    if (path != null && !applicationConfig.IsApp(path) 
+                        && !path.Contains("ENSACO.RxPlatform.dll"))
                     {
                         RxPlatformObject.Instance.WriteLogTrace("PlatformHostMain.InitPlatformHosting", 100, $"Inspecting assembly {path}");
 
                         HostedPlatformLibrary plugin = new HostedPlatformLibrary();
-                        if (plugin.InitializeAssembly(path))
+                        if (plugin.InitializeAssembly(path, true))
                         {
                             plugins.Add(plugin);
                             RxPlatformObject.Instance.WriteLogInfo("PlatformHostMain.InitPlatformHosting", 0, $"Loaded .NET library: {plugin.GetPluginName()} [{plugin.GetPluginInfo()}].");
@@ -177,6 +224,56 @@ namespace ENSACO.RxPlatform.Hosting
             catch (Exception ex)
             {
                 result = CommonInterface.CreateResultFromException(ex);
+            }
+            if (CommonInterface.rx_result_ok(&result) != 0)
+            {
+                try
+                {
+                    string?[] appAssemblies = new string?[applicationConfig.RunAssemblies.Length];
+                    IntPtr* assemblyArray = (IntPtr*)assemblies;
+                    for (uint i = 0; i < count; i++)
+                    {
+                        string? path = Marshal.PtrToStringUTF8(assemblyArray[i]);
+                        if (path != null)
+                        {
+                            int idx = applicationConfig.GetIndex(path);
+                            if (idx != -1)
+                            {
+                                appAssemblies[idx] = path;
+                            }
+                            else
+                            {
+                                RxPlatformObject.Instance.WriteLogTrace("PlatformHostMain.InitPlatformHosting", 100, $"Inspecting assembly {path}");
+
+                                HostedPlatformLibrary plugin = new HostedPlatformLibrary();
+                                if (plugin.InitializeAssembly(path, true))
+                                {
+                                    plugins.Add(plugin);
+                                    RxPlatformObject.Instance.WriteLogInfo("PlatformHostMain.InitPlatformHosting", 0, $"Loaded .NET library: {plugin.GetPluginName()} [{plugin.GetPluginInfo()}].");
+                                }
+                            }
+                        }
+                    }
+                    foreach(var appAssembly in appAssemblies)
+                    {
+                        if(appAssembly != null)
+                        {
+                            RxPlatformObject.Instance.WriteLogTrace("PlatformHostMain.InitPlatformHosting", 100, $"Inspecting assembly {appAssembly}");
+
+                            HostedPlatformLibrary plugin = new HostedPlatformLibrary();
+                            if (plugin.InitializeAssembly(appAssembly, false))
+                            {
+                                plugins.Add(plugin);
+                                RxPlatformObject.Instance.WriteLogInfo("PlatformHostMain.InitPlatformHosting", 0, $"Loaded .NET library: {plugin.GetPluginName()} [{plugin.GetPluginInfo()}].");
+                            }
+                        }
+                    }
+                    CommonInterface.rx_init_string_value_struct(version, $"{hostName} Ver {Assembly.GetExecutingAssembly().GetName().Version}", -1);
+                }
+                catch (Exception ex)
+                {
+                    result = CommonInterface.CreateResultFromException(ex);
+                }
             }
             return result;
         }
@@ -225,8 +322,9 @@ namespace ENSACO.RxPlatform.Hosting
 
 
         [UnmanagedCallersOnly()]
-        public unsafe static void BindObject(rx_item_type type, rx_node_id_struct* node_id, char* path, rx_node_id_struct* parent_id, IntPtr runtime)
+        public unsafe static void BindObject(rx_item_type type, rx_node_id_struct* node_id, char* path, rx_node_id_struct* parent_id, IntPtr runtime, char* initialValues)
         {
+            string initStr = Marshal.PtrToStringUTF8((IntPtr)initialValues) ?? "";
             string subPath = Marshal.PtrToStringUTF8((IntPtr)path) ?? "";
             var nodeId = CommonInterface.CreateRxNodeIdFromNodeId(*node_id);
             var parentId = CommonInterface.CreateRxNodeIdFromNodeId(*parent_id);
@@ -242,15 +340,15 @@ namespace ENSACO.RxPlatform.Hosting
             }
             try
             {
-                RxPlatformObject.Instance.WriteLogDebug("PlatformHostMain.BindObject", 100, $".NET Core binding object {nodeId.ToString()}");
+                RxPlatformObject.Instance.WriteLogDebug("PlatformHostMain.BindObject", 100, $".NET Core binding {type} object {nodeId.ToString()}");
                     
-                RxRuntimeRegistrator.BindObject(type, nodeId, subPath, parentId, runtime);
+                RxRuntimeRegistrator.BindObject(type, nodeId, subPath, parentId, runtime, initStr);
 
-                RxPlatformObject.Instance.WriteLogDebug("PlatformHostMain.BindObject", 100, $".NET Core bound object {nodeId.ToString()}");
+                RxPlatformObject.Instance.WriteLogDebug("PlatformHostMain.BindObject", 100, $".NET Core bound  {type} {nodeId.ToString()}");
             }
             catch (Exception ex)
             {
-                RxPlatformObject.Instance.WriteLogError("PlatformHostMain.BindObject", 200, $".NET Core failed to bind object {nodeId.ToString()}:{ex.Message}");
+                RxPlatformObject.Instance.WriteLogError("PlatformHostMain.BindObject", 200, $".NET Core failed to bind {type} {nodeId.ToString()}:{ex.Message}");
             }
         }
         [UnmanagedCallersOnly()]
@@ -295,9 +393,9 @@ namespace ENSACO.RxPlatform.Hosting
                     {
                         plugin.BuildPlatformTypes();
                     }
-                    else
+                    else if (plugin.GetPluginName() == library)
                     {
-                        plugin.InitializeAssembly(plugin.GetPath());
+                        plugin.InitializeAssembly(plugin.GetPath(), false);
                         plugin.BuildPlatformTypes();
                         if (!all)
                         {

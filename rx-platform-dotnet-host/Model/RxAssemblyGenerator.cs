@@ -104,7 +104,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     || type.startMethod.ReturnType != typeof(void)
                     || type.startMethod.GetParameters().Length != 0)
                 {
-                    RxPlatformObject.Instance.WriteLogWarning("RxAssemblyGenerator.ConnectObjectType", 100
+                    RxPlatformObject.Instance.WriteLogTrace("RxAssemblyGenerator.ConnectObjectType", 100
                         , $"Started method for runtime type {type.codeNamespace}.{type.name} not found or has invalid return type.");
                     type.startMethod = null;
                 }
@@ -113,7 +113,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     || type.stopMethod.ReturnType != typeof(void)
                     || type.stopMethod.GetParameters().Length != 0)
                 {
-                    RxPlatformObject.Instance.WriteLogWarning("RxAssemblyGenerator.ConnectObjectType", 100
+                    RxPlatformObject.Instance.WriteLogTrace("RxAssemblyGenerator.ConnectObjectType", 100
                         , $"Stopping method for runtime type {type.codeNamespace}.{type.name} not found or has invalid return type.");
                     type.stopMethod = null;
                 }
@@ -188,7 +188,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
             if(System.Diagnostics.Debugger.IsAttached)
             {
                 // For debugging purposes, write the generated code to a file
-                string debugPath = @"C:\RX\Native\dotnet\DynamicAssembly\DynamicCode.cs";
+                string debugPath = $@"C:\tempdotnet\{hostLib.GetPluginName()}_DynamicCode.cs";
                 File.WriteAllText(debugPath, sourceCode);
             }
 
@@ -201,9 +201,10 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 .Select(a => MetadataReference.CreateFromFile(a.Location))
                 .ToList();
 
-
+            byte[] hostLibData = hostLib.GetAssemblyData();
             // Add System.Runtime for basic types
-            references.Add(MetadataReference.CreateFromImage(hostLib.GetAssemblyData()));
+            if(hostLibData != null && hostLibData.Length > 0)
+                references.Add(MetadataReference.CreateFromImage(hostLibData));
 
             string? assemblyName = hostLib.GetAssemblyName();
 
@@ -223,8 +224,16 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 {
                     foreach (var diagnostic in ret.Diagnostics)
                     {
-                        RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BuildPlatformTypes", 100
-                            , $"Error compiling dynamic assembly for assembly {parentAssembly.GetName().Name}: {diagnostic.ToString()}");
+                        if (diagnostic.Severity == DiagnosticSeverity.Error)
+                        {
+                            RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BuildPlatformTypes", 100
+                                , $"Error compiling dynamic assembly for assembly {parentAssembly.GetName().Name}: {diagnostic.ToString()}");
+                        }
+                        else
+                        {
+                            RxPlatformObject.Instance.WriteLogWarning("PlatformRuntimeTypes.BuildPlatformTypes", 100
+                                , $"Error compiling dynamic assembly for assembly {parentAssembly.GetName().Name}: {diagnostic.ToString()}");
+                        }
                     }
                 }
                 // Load the assembly from memory

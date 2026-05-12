@@ -30,6 +30,9 @@ namespace DynamicAssembly
     [RxPlatformStructType(nodeId: "C1AF1414-F289-4299-B958-E022E400389C")]
     public class DynamicStruct : RxPlatformStructRuntime
     {
+        public DynamicStruct()
+        {
+        }
         public DateTime? TimeProp { get; set; } = DateTime.Now;
         public uint? PeriodMsZrna { get; set; } = 1000;
         public virtual string? PeriodString { get; set; } = "zikica";
@@ -39,7 +42,9 @@ namespace DynamicAssembly
 
         public virtual event Action<string?>? OnPeriodStringChange;
 
-        public byte? Borisa { get; set; } = 55;
+        public virtual byte? Borisa { get; set; } = 55;
+
+        public virtual event ChangedObjProp4? OnBorisaChange;
 
         public virtual DynamicSubStruct? SubStruct { get; } = new DynamicSubStruct
         {
@@ -50,6 +55,10 @@ namespace DynamicAssembly
         public void Started()
         {
             Console.WriteLine($"DynamicStruct: Started method called.SubPeriodString = {SubStruct.SubPeriodString}");
+            OnBorisaChange += (newValue) =>
+            {
+                Console.WriteLine($"DynamicStruct: OnBorisaChange event fired. New Value: {newValue}");
+            };
         }
         public void Stopping()
         {

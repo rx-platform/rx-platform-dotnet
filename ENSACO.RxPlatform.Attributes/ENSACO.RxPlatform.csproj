@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
     <EnableUnmanagedExports>false</EnableUnmanagedExports>
-    <Version>2.0.0</Version>
+    <Version>3.3.1</Version>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>{rx-platform} .NET Core Library</Title>
     <Authors>ENSACO Solutions doo</Authors>

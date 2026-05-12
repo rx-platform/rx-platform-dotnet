@@ -86,7 +86,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     objType.valid = false;
                     continue;
                 }
-                RxPlatformRuntimeBase? instance = objType.defaultConstructor.Invoke() as RxPlatformRuntimeBase;
+                RxPlatformRuntimeBase? instance = objType.defaultConstructor.Invoke(null) as RxPlatformRuntimeBase;
                 if (instance != null)
                 {
                     StringBuilder sb = new StringBuilder();
@@ -104,32 +104,38 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                 if (objType.runtimeType)
                 {
                     objType.codeNamespace = objType.type.Namespace;
-                    MethodInfo? startMethod = objType.type.GetMethod("Started");
-                    if (startMethod == null
-                        || startMethod.ReturnType != typeof(void)
-                        || startMethod.GetParameters().Length != 0)
+                    MethodInfo? startMethod = null;
+                    MethodInfo? stopMethod = null;
+
+                    var tempMethod = objType.type.GetMethod("Started");
+                    if (tempMethod == null
+                        || tempMethod.ReturnType != typeof(void)
+                        || tempMethod.GetParameters().Length != 0)
                     {
-                        RxPlatformObject.Instance.WriteLogWarning("RxInitialDataFill", 100
+                        RxPlatformObject.Instance.WriteLogTrace("RxInitialDataFill", 100
                             , $"Started method for runtime type {objType.path}/{objType.name} not found or has invalid return type.");
-                        objType.startMethod = null;
                     }
                     else
                     {
-                        objType.startMethod = startMethod;
+                        startMethod = tempMethod;
                     }
-                    MethodInfo? stopMethod = objType.type.GetMethod("Stopping");
-                    if (stopMethod == null
-                        || stopMethod.ReturnType != typeof(void)
-                        || stopMethod.GetParameters().Length != 0)
+
+                    tempMethod = objType.type.GetMethod("Stopping");
+                    if (tempMethod == null
+                        || tempMethod.ReturnType != typeof(void)
+                        || tempMethod.GetParameters().Length != 0)
                     {
-                        RxPlatformObject.Instance.WriteLogWarning("PlatformRuntimeTypes.BuildPlatformTypes", 100
+                        RxPlatformObject.Instance.WriteLogTrace("PlatformRuntimeTypes.BuildPlatformTypes", 100
                             , $"Stopping method for runtime type {objType.path}/{objType.name} not found or has invalid return type.");
-                        objType.stopMethod = null;
                     }
                     else
                     {
-                        objType.stopMethod = stopMethod;
+                        stopMethod = tempMethod;
                     }
+                    objType.codeNamespace = objType.type.Namespace;
+                    objType.startMethod = startMethod;
+                    objType.stopMethod = stopMethod;
+
                 }
                 data[kvp.Key] = objType;
             }

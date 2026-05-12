@@ -39,7 +39,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     }
                 }
             }
-            return RxNodeId.NullId;
+            return new RxNodeId(HostPlatformIds.RX_DOTNET_DOMAIN_ID, 1);
         }
         static RxNodeId ExtractApp(object? prototype)
         {

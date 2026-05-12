@@ -11,8 +11,9 @@ namespace DynamicAssembly
     [RxPlatformLibrary()]
     public class DynamicPlugin
     {
-        public static PlatformLibraryInfo Initialize()
+        public static PlatformLibraryInfo Initialize(string path)
         {
+            Console.WriteLine($"DynamicPlugin: Initialize called with path: {path}");
             // This method is just to force the compiler to include this class in the assembly
             return new PlatformLibraryInfo
             {
@@ -27,83 +28,87 @@ namespace DynamicAssembly
 
         public static async void Start()
         {
-            var temp = new DynamicStruct();
+            //var temp = new DynamicStruct();
 
-            // /* just temporary excluded for testing
-            var stack = ModbusUtility.CreateModbusTcpSlaves(502, new byte[] { 1, 2, 3 });
-            stack.TcpPort.Timeouts.ReceiveTimeout = 60000;
-            await ModbusUtility.DownloadStack(stack, "Test1", "ports", Assembly.GetExecutingAssembly());
-
-
-            var masterStack = ModbusUtility.CreateModbusTcpMasters("127.0.0.1", 502, new byte[] { 2 });
-            masterStack.TcpPort.Timeouts.ReceiveTimeout = 60000;
-            await ModbusUtility.DownloadStack(masterStack, "Test1Master", "ports", Assembly.GetExecutingAssembly());
+            //// /* just temporary excluded for testing
+            //var stack = ModbusUtility.CreateModbusTcpSlaves(502, new byte[] { 1, 2, 3 });
+            //stack.TcpPort.Timeouts.ReceiveTimeout = 60000;
+            //await ModbusUtility.DownloadStack(stack, "Test1", "ports", Assembly.GetExecutingAssembly());
 
 
-            var opcServerStack = OPCUAUtility.CreateOPCUAServer(
-                50001,
-                new string[] { "OPC1", "OPC2" });
-
-            await OPCUAUtility.DownloadStack(opcServerStack, "Opc1", "ports", Assembly.GetExecutingAssembly());
-
-            other1 = await RxPlatformObjectRuntime.CreateInstance<SubNamespace.SomeOtherDynamicObject>(
-                new SubNamespace.SomeOtherDynamicObject
-                {
-                    OtherProp2 = 55
-                }, "OtherDynObj1");
-
-            var other2Temp = new SubNamespace.SomeOtherDynamicObject
-            {
-                OtherProp1 = "Value from DynamicPlugin"
-            };
-
-            other2 = await RxPlatformObjectRuntime.CreateInstance<SubNamespace.SomeOtherDynamicObject>(
-                other2Temp, "OtherDynObj2");
-
-            extended = await RxPlatformObjectRuntime.CreateInstance<DynamicObject>(
-                new ExtendedDynamicObject
-                {
-                    SubData = new DynamicDataType
-                    {
-                        SubData = new DynamicSubDataType
-                        {
-                            SubItem = 9999,
-                            SubStringString = "subdata value",
-                        }
-                    },
-                    OtherDynamicObj = other2,
-                    ModbusSlave = stack.Slaves[1],
-                    ModbusMaster = masterStack.Slaves[0],
-                    OPCServer = opcServerStack.Servers[0],
-                    OPCServer2 = opcServerStack.Servers[1]
-
-                }, "TestObj2", "subfolder"
-                , new ENSACO.RxPlatform.Model.RxNodeId(new Guid("74F3D1F0-D0D1-4105-8ED2-DDE7CEF2C4C9"), 999));
+            //var masterStack = ModbusUtility.CreateModbusTcpMasters("127.0.0.1", 502, new byte[] { 2 });
+            //masterStack.TcpPort.Timeouts.ReceiveTimeout = 60000;
+            //await ModbusUtility.DownloadStack(masterStack, "Test1Master", "ports", Assembly.GetExecutingAssembly());
 
 
-            
+            //var opcServerStack = OPCUAUtility.CreateOPCUAServer(
+            //    50001,
+            //    new string[] { "OPC1", "OPC2" });
 
-            
+            //await OPCUAUtility.DownloadStack(opcServerStack, "Opc1", "ports", Assembly.GetExecutingAssembly());
+
+            //other1 = await RxPlatformObjectRuntime.CreateInstance<SubNamespace.SomeOtherDynamicObject>(
+            //    new SubNamespace.SomeOtherDynamicObject
+            //    {
+            //        OtherProp2 = 55
+            //    }, "OtherDynObj1");
+
+            //var other2Temp = new SubNamespace.SomeOtherDynamicObject
+            //{
+            //    OtherProp1 = "Value from DynamicPlugin"
+            //};
+
+            //other2 = await RxPlatformObjectRuntime.CreateInstance<SubNamespace.SomeOtherDynamicObject>(
+            //    other2Temp, "OtherDynObj2");
+
+            //extended = await RxPlatformObjectRuntime.CreateInstance<DynamicObject>(
+            //    new ExtendedDynamicObject
+            //    {
+            //        SubData = new DynamicDataType
+            //        {
+            //            SubData = new DynamicSubDataType
+            //            {
+            //                SubItem = 9999,
+            //                SubStringString = "subdata value",
+            //            }
+            //        },
+            //        OtherDynamicObj = other2,
+            //        ModbusSlave = stack.Slaves[1],
+            //        ModbusMaster = masterStack.Slaves[0],
+            //        OPCServer = opcServerStack.Servers[0],
+            //        OPCServer2 = opcServerStack.Servers[1]
+
+            //    }, "TestObj2", "subfolder"
+            //    , new ENSACO.RxPlatform.Model.RxNodeId(new Guid("74F3D1F0-D0D1-4105-8ED2-DDE7CEF2C4C9"), 999));
+
+
+
+
+
 
             // */
-
+            
             Task task = new Task(async () =>
             {
                 {
                     // /* just temporary excluded for testing
-                    for(int i = 2; i<3; i++)
+                    //for(int i = 2; i<3; i++)
+                    //{
+                    //    await RxPlatformObjectRuntime.CreateObject(new DynamicObject
+                    //    {
+                    //        ObjectProp1111 = 5670 + (uint)i
+
+                    //    }, i==2 ? "TestObj" : $"TestObj{i}");
+                    //}
+                    //DynamicObjectDerived? src = await RxPlatformObjectRuntime.CreateInstance(new DynamicObjectDerived(new DynamicDataType
+                    DynamicObjectDerived ? src = await RxPlatformObjectRuntime.CreateInstance(new DynamicObjectDerived(new DynamicDataType
                     {
-                        await RxPlatformObjectRuntime.CreateObject(new DynamicObject
+                        SubData = new DynamicSubDataType
                         {
-                            ObjectProp1111 = 5670 + (uint)i
-
-                        }, i==2 ? "TestObj" : $"TestObj{i}");
-                    }
-                    DynamicObject ? src = await RxPlatformObjectRuntime.CreateInstance(new DynamicObject
-                    {
-                        ObjectProp1111 = 5678
-
-                    },"DynObj");
+                            SubItem = 1234,
+                            SubStringString = "Hello from DynamicPlugin"
+                        }
+                    }), "DynObj");
 
                     if (src == null)
                     {
@@ -119,14 +124,19 @@ namespace DynamicAssembly
                         };
                         Console.WriteLine("DynamicPlugin: Created DynamicObject instance.");
                     }
-                    // */
+                    // 
                     await Task.Delay(10000);
-                    
+
+                    //Console.WriteLine("DynamicPlugin: Disposing DynamicObject instance.");
+                    //await src.DisposeAsync();
+                    //Console.WriteLine("DynamicPlugin: Disposed DynamicObject instance.");
+
                     return;
                                        
                 }
             });
             task.Start();
+        
         }
 
         public static void Deinitialize()

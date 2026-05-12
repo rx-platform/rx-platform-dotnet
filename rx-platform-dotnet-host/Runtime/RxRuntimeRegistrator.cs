@@ -27,16 +27,22 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 {
                     RxPlatformObject.Instance.WriteLogTrace("PlatformRuntimeTypes.InternalLibraryCreateRuntime", 110
                         , $"Created Runtime {prototype.GetType().FullName} with name {name}, path {path}.");
-                    
                     return true;
                 }
                 else
                 {
                     RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.InternalLibraryCreateRuntime", 120
                         , $"Failed to create Runtime {prototype.GetType().FullName} with name {name}, path {path}:{result.Message}");
+
+                    return false;
                 }
             }
-            return false;
+            else
+            {
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.InternalLibraryCreateRuntime", 120
+                    , $"Failed to create Runtime {prototype.GetType().FullName} with name {name}, path {path} because CreateRuntime API is not available.");
+                return false;
+            }
         }
         static async Task<bool> CreateRuntime<T>(T attr, rx_item_type rxType, object prototype
             , string name, string path, RxNodeId id
@@ -272,7 +278,6 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
         }
         internal static async Task<RxPlatformObjectRuntime?> RegisterRuntime(byte type, object prototype, string name, string path, RxNodeId id)
         {
-            RxPlatformObjectRuntime? runtimeInstance = null;
             // we have to have an id that is valid
             if (id.IsNull())
             {
@@ -281,29 +286,72 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             var result = await CreateRuntime(prototype, name, path, id, prototype.GetType().Assembly);
             if(result)
             {
+                RxPlatformObjectRuntime? managedObj = null;
+                TaskCompletionSource? initCompleted = null;
                 lock (RxMetaData.Instance.TypesLock)
                 {
                     if (RxMetaData.Instance.ObjectRuntimes.NodeIdDict.TryGetValue(id, out var rtData) 
                         && rtData.objectRuntime.IsAllocated)
                     {
-                        RxPlatformObjectRuntime? managedObj = rtData.objectRuntime.Target as RxPlatformObjectRuntime;
+                        managedObj = rtData.objectRuntime.Target as RxPlatformObjectRuntime;
                         if (managedObj != null)
                         {
-                            runtimeInstance = managedObj;
+                            initCompleted = rtData.initCompleted;                            
                         }
                     }
                 }
+                if (initCompleted != null && initCompleted.Task != null)
+                {
+                    await initCompleted.Task;
+                }
+                return managedObj;
             }
-            return runtimeInstance;
+            return null;
         }
-        internal static Task UnregisterRuntime(byte typeId, Type type, RxPlatformObjectRuntime instance, string name, string path, RxNodeId id)
+        internal static async Task UnregisterRuntime(byte typeId, Type type, RxPlatformObjectRuntime instance, string name, string path, RxNodeId id)
         {
-            return Task.CompletedTask;
+            if (PlatformHostMain.api.DeleteRuntime != null)
+            {
+                Exception? result = await PlatformHostMain.api.DeleteRuntime((rx_item_type)typeId, "", instance.NodeId);
+                if (result == null)
+                {
+                    RxPlatformObject.Instance.WriteLogDebug("PlatformRuntimeTypes.UnregisterRuntimes", 100
+                        , $"Deleted Runtime object with id {instance.NodeId} at path {instance.Path}.");
+                }
+                else
+                {
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.UnregisterRuntimes", 110
+                        , $"Failed to delete Runtime object with id {instance.NodeId} at path {instance.Path}:{result.Message}");
+                }
+            }
         }
 
-
+        static WeakDelegate<Action>? GetStartMethod(ref RuntimeConstructionData typeConstructor, RxPlatformRuntimeBase managedObj)
+        {
+            if (typeConstructor.startMethod != null)
+            {
+                var del = new WeakDelegate<Action>(managedObj, typeConstructor.startMethod);
+                if (del != null)
+                {
+                    return del;
+                }
+            }
+            return null;
+        }
+        static WeakDelegate<Action>? GetStoppedMethod(ref RuntimeConstructionData typeConstructor, RxPlatformRuntimeBase managedObj)
+        {
+            if (typeConstructor.stopMethod != null)
+            {
+                var del = new WeakDelegate<Action>(managedObj, typeConstructor.stopMethod);
+                if (del != null)
+                {
+                    return del;
+                }
+            }
+            return null;
+        }
         // functions called by the native side bind/unbind runtimes
-        static void BindObject(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr)
+        static void BindObject(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr, string? initialValues)
         {
 
             System.Diagnostics.Debug.Assert(!nodeId.IsNull() && !string.IsNullOrEmpty(path));
@@ -315,16 +363,12 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
             if (found && typeConstructor.constructor != null)
             {
-                RxPlatformObjectRuntime? managedObj = typeConstructor.constructor() as RxPlatformObjectRuntime;
+                RxPlatformObjectRuntime? managedObj = typeConstructor.constructor(initialValues) as RxPlatformObjectRuntime;
                 if (managedObj != null)
                 {
-                    Action? startedMethod = null;
-                    if (typeConstructor.startMethod != null)
-                        startedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.startMethod);
-
-                    Action? stoppedMethod = null;
-                    if (typeConstructor.stopMethod != null)
-                        stoppedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.stopMethod);
+                    managedObj.__initSource = new TaskCompletionSource();
+                    WeakDelegate<Action>? startedMethod = GetStartMethod(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>? stoppedMethod = GetStoppedMethod(ref typeConstructor, managedObj);
 
                     PlatformRuntimeData runtimeData = new PlatformRuntimeData
                     {
@@ -333,7 +377,8 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                         nodeId = nodeId,
                         startedMethod = startedMethod,
                         stoppedMethod = stoppedMethod,
-                        path = path
+                        path = path,
+                        initCompleted = new TaskCompletionSource()
                     };
 
                     lock (RxMetaData.Instance.TypesLock)
@@ -362,7 +407,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 
             }
         }
-        static void BindStruct(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr)
+        static void BindStruct(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr, string? initialValues)
         {
 
             System.Diagnostics.Debug.Assert(!nodeId.IsNull() && !string.IsNullOrEmpty(path));
@@ -382,24 +427,17 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
             if (found && typeConstructor.constructor != null)
             {
-                RxPlatformStructRuntime? managedObj = typeConstructor.constructor() as RxPlatformStructRuntime;
+                RxPlatformStructRuntime? managedObj = typeConstructor.constructor(initialValues) as RxPlatformStructRuntime;
                 if (managedObj != null)
                 {
-                    if (typeConstructor.initialValues != null && typeConstructor.initialValues.Length > 0)
-                    {
-                        string temp = Encoding.UTF8.GetString(typeConstructor.initialValues);
-                        Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
-                        managedObj.__rxStructDeserialize(ref reader);
-                    }
-                    Action? startedMethod = null;
-                    if (typeConstructor.startMethod != null)
-                        startedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.startMethod);
-
-                    Action? stoppedMethod = null;
-                    if (typeConstructor.stopMethod != null)
-                        stoppedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.stopMethod);
-
-
+                    //if (typeConstructor.initialValues != null && typeConstructor.initialValues.Length > 0)
+                    //{
+                    //    string temp = Encoding.UTF8.GetString(typeConstructor.initialValues);
+                    //    Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
+                    //    managedObj.__rxStructDeserialize(ref reader);
+                    //}
+                    WeakDelegate<Action>? startedMethod = GetStartMethod(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>? stoppedMethod = GetStoppedMethod(ref typeConstructor, managedObj);
                     PlatformRuntimeData runtimeData = new PlatformRuntimeData
                     {
                         objectRuntime = GCHandle.Alloc(managedObj),
@@ -435,7 +473,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
         }
 
-        static void BindEvent(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr)
+        static void BindEvent(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr, string? initialValues)
         {
 
             System.Diagnostics.Debug.Assert(!nodeId.IsNull() && !string.IsNullOrEmpty(path));
@@ -455,24 +493,17 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
             if (found && typeConstructor.constructor != null)
             {
-                RxPlatformEventRuntime? managedObj = typeConstructor.constructor() as RxPlatformEventRuntime;
+                RxPlatformEventRuntime? managedObj = typeConstructor.constructor(initialValues) as RxPlatformEventRuntime;
                 if (managedObj != null)
                 {
-                    if (typeConstructor.initialValues != null && typeConstructor.initialValues.Length > 0)
-                    {
-                        string temp = Encoding.UTF8.GetString(typeConstructor.initialValues);
-                        Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
-                        managedObj.__rxStructDeserialize(ref reader);
-                    }
-                    Action? startedMethod = null;
-                    if (typeConstructor.startMethod != null)
-                        startedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.startMethod);
-
-                    Action? stoppedMethod = null;
-                    if (typeConstructor.stopMethod != null)
-                        stoppedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.stopMethod);
-
-
+                    //if (typeConstructor.initialValues != null && typeConstructor.initialValues.Length > 0)
+                    //{
+                    //    string temp = Encoding.UTF8.GetString(typeConstructor.initialValues);
+                    //    Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
+                    //    managedObj.__rxStructDeserialize(ref reader);
+                    //}
+                    WeakDelegate<Action>? startedMethod = GetStartMethod(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>? stoppedMethod = GetStoppedMethod(ref typeConstructor, managedObj);
                     PlatformRuntimeData runtimeData = new PlatformRuntimeData
                     {
                         objectRuntime = GCHandle.Alloc(managedObj),
@@ -507,7 +538,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 
             }
         }
-        static void BindSource(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr)
+        static void BindSource(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr, string? initialValues)
         {
 
             System.Diagnostics.Debug.Assert(!nodeId.IsNull() && !string.IsNullOrEmpty(path));
@@ -519,17 +550,11 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
             if (found && typeConstructor.constructor != null)
             {
-                RxPlatformSourceRuntime? managedObj = typeConstructor.constructor() as RxPlatformSourceRuntime;
+                RxPlatformSourceRuntime? managedObj = typeConstructor.constructor(initialValues) as RxPlatformSourceRuntime;
                 if (managedObj != null)
                 {
-                    Action? startedMethod = null;
-                    if (typeConstructor.startMethod != null)
-                        startedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.startMethod);
-
-                    Action? stoppedMethod = null;
-                    if (typeConstructor.stopMethod != null)
-                        stoppedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.stopMethod);
-
+                    WeakDelegate<Action>? startedMethod = GetStartMethod(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>? stoppedMethod = GetStoppedMethod(ref typeConstructor, managedObj);
 
                     bool[] types = new bool[Enum.GetValues(typeof(rx_value_t)).Length];
                     SourceWriteMethods sourceWrites = new SourceWriteMethods();
@@ -633,7 +658,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
         }
 
-        static void BindMapper(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr)
+        static void BindMapper(RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr, string? initialValues)
         {
 
             System.Diagnostics.Debug.Assert(!nodeId.IsNull() && !string.IsNullOrEmpty(path));
@@ -653,23 +678,17 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
             if (found && typeConstructor.constructor != null)
             {
-                RxPlatformMapperRuntime? managedObj = typeConstructor.constructor() as RxPlatformMapperRuntime;
+                RxPlatformMapperRuntime? managedObj = typeConstructor.constructor(initialValues) as RxPlatformMapperRuntime;
                 if (managedObj != null)
                 {
-                    if (typeConstructor.initialValues != null && typeConstructor.initialValues.Length > 0)
-                    {
-                        string temp = Encoding.UTF8.GetString(typeConstructor.initialValues);
-                        Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
-                        managedObj.__rxStructDeserialize(ref reader);
-                    }
-                    Action? startedMethod = null;
-                    if (typeConstructor.startMethod != null)
-                        startedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.startMethod);
-
-                    Action? stoppedMethod = null;
-                    if (typeConstructor.stopMethod != null)
-                        stoppedMethod = (Action)Delegate.CreateDelegate(typeof(Action), managedObj, typeConstructor.stopMethod);
-
+                    //if (typeConstructor.initialValues != null && typeConstructor.initialValues.Length > 0)
+                    //{
+                    //    string temp = Encoding.UTF8.GetString(typeConstructor.initialValues);
+                    //    Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
+                    //    managedObj.__rxStructDeserialize(ref reader);
+                    //}
+                    WeakDelegate<Action>? startedMethod = GetStartMethod(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>? stoppedMethod = GetStoppedMethod(ref typeConstructor, managedObj);
 
                     PlatformRuntimeData runtimeData = new PlatformRuntimeData
                     {
@@ -694,7 +713,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 }
                 else
                 {
-                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
+                    RxPlatformObject.Instance.WriteLogWarning("PlatformRuntimeTypes.BindObject", 110
                         , $"Failed to bind native struct pointer 0x{nativePtr.ToString("X")} unable to create managed object with type id {typeId}.");
                 }
             }
@@ -705,24 +724,24 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 
             }
         }
-        static internal void BindObject(rx_item_type type, RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr)
+        static internal void BindObject(rx_item_type type, RxNodeId nodeId, string path, RxNodeId typeId, IntPtr nativePtr, string? initialValues)
         {
             switch (type)
             {
                 case rx_item_type.rx_object:
-                    BindObject(nodeId, path, typeId, nativePtr);
+                    BindObject(nodeId, path, typeId, nativePtr, initialValues);
                     break;
                 case rx_item_type.rx_source_type:
-                    BindSource(nodeId, path, typeId, nativePtr);
+                    BindSource(nodeId, path, typeId, nativePtr, initialValues);
                     break;
                 case rx_item_type.rx_struct_type:
-                    BindStruct(nodeId, path, typeId, nativePtr);
+                    BindStruct(nodeId, path, typeId, nativePtr, initialValues);
                     break;
                 case rx_item_type.rx_event_type:
-                    BindEvent(nodeId, path, typeId, nativePtr);
+                    BindEvent(nodeId, path, typeId, nativePtr, initialValues);
                     break;
                 case rx_item_type.rx_mapper_type:
-                    BindMapper(nodeId, path, typeId, nativePtr);
+                    BindMapper(nodeId, path, typeId, nativePtr, initialValues);
                     break;
                 default:
                     {
@@ -750,10 +769,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if(managedObj != null)
                                     {
                                         managedObj.__BindObject(IntPtr.Zero, RxNodeId.NullId, "");
-                                        if (rtData.stoppedMethod != null)
-                                        {
-                                            rtData.stoppedMethod();
-                                        }
+                                        CallStoppdMethods(ref rtData);
                                     }
                                 }
                                 RxMetaData.Instance.ObjectRuntimes.NodeIdDict.Remove(rtData.nodeId);
@@ -788,10 +804,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (managedObj != null)
                                     {
                                         managedObj.__BindObject(IntPtr.Zero, RxNodeId.NullId, "");
-                                        if (rtData.stoppedMethod != null)
-                                        {
-                                            rtData.stoppedMethod();
-                                        }
+                                        CallStoppdMethods(ref rtData);
                                     }
                                 }
                                 RxMetaData.Instance.SourceRuntimes.NativeDict.Remove(nativePtr);
@@ -825,10 +838,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (managedObj != null)
                                     {
                                         managedObj.__BindObject(IntPtr.Zero, RxNodeId.NullId, "");
-                                        if (rtData.stoppedMethod != null)
-                                        {
-                                            rtData.stoppedMethod();
-                                        }
+                                        CallStoppdMethods(ref rtData);
                                     }
                                 }
                                 RxMetaData.Instance.MapperRuntimes.NativeDict.Remove(nativePtr);
@@ -863,10 +873,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (managedObj != null)
                                     {
                                         managedObj.__BindObject(IntPtr.Zero, RxNodeId.NullId, "");
-                                        if (rtData.stoppedMethod != null)
-                                        {
-                                            rtData.stoppedMethod();
-                                        }
+                                        CallStoppdMethods(ref rtData);
                                     }
                                 }
                                 RxMetaData.Instance.EventRuntimes.NativeDict.Remove(nativePtr);
@@ -892,6 +899,24 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                     }
                     break;
             }
+        }
+
+        private static void CallStoppdMethods(ref PlatformRuntimeData rtData)
+        {
+            if(rtData.stoppedMethod!=null)
+            {
+                var stoppedDelegate = rtData.stoppedMethod.GetDelegate();
+                stoppedDelegate?.Invoke();
+            }
+            //if (rtData.stoppedMethods != null && rtData.stoppedMethods.Count > 0)
+            //{
+            //    for(int i = rtData.stoppedMethods.Count - 1; i >= 0; i--)
+            //    {
+            //        var stop = rtData.stoppedMethods[i];
+            //        var stoppedDelegate = stop.GetDelegate();
+            //        stoppedDelegate?.Invoke();
+            //    }
+            //}
         }
 
         internal static RxPlatformObjectRuntime? GetInstance(nint instancePtr)

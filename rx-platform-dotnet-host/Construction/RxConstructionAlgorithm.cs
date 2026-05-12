@@ -32,14 +32,14 @@ namespace ENSACO.RxPlatform.Hosting.Construction
         {
             lock (RxMetaData.Instance.TypesLock)
             {
-                //DumpRuntimeConstructionData("Before");
+            //    DumpRuntimeConstructionData("Before");
                 //Console.WriteLine($"Removing construction data for nodeId {id}");
                 var constructionData = RxMetaData.Instance.RuntimeConstruction;
                 if (constructionData != null && constructionData.ContainsKey(id))
                 {
                     constructionData.Remove(id);
                 }
-                //DumpRuntimeConstructionData("After");
+            //    DumpRuntimeConstructionData("After");
             }
         }
         internal static bool TryGetConstructionData(RxNodeId id, string path, out RxRutimeConstructData? data)
@@ -107,7 +107,7 @@ namespace ENSACO.RxPlatform.Hosting.Construction
                         {
                             subData = new RxRutimeConstructData
                             {
-                                type = rx_item_type.rx_struct_type
+                                type = type
                             };
                             data.structs[p] = subData;
                         }

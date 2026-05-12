@@ -268,7 +268,7 @@ Also reading and writing properties operation will be thread safe.
  ways to monitor and write previously defined property values:
 
   - **C# events** named `On`_PropertyName_`Change` where _PropertyName_ is the name of the property already mapped.
-    These events will be overridden by the platform runtime and can be used to notify your code about property value changes.
+    These events will be overridden and called by the platform runtime and can be used to notify your code about property value changes.
     Events that are mapped have the following characteristics:
     - virtual
     - non-static

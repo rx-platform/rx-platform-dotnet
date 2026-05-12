@@ -321,7 +321,7 @@ items are mapped from properties that have the following characteristics:
     ```RxPlatformMapperType```
   - property has only get accessor
   - property has both get and init/set accessor
-
+  
 Define property accessor for the mapper to determine read/write capabilities.
 Declaring it with only get or get and init accessor will create read only mapper
 and declaring it with get and set accessor will create read/write mapper.

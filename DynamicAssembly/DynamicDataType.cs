@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DynamicAssembly
 {
-    [RxPlatformDataType(nodeId: "A1B2C3D4-E5F6-4789-ABCD-1234567890AB")]
+    [RxPlatformDataType(nodeId: "A1B2C3D4-E5F6-4789-ABCD-1234567890AB", directory:"data")]
     [RxPlatformDeclare()]
     public class MyStruct
     {
@@ -39,6 +39,17 @@ namespace DynamicAssembly
         public string? SubStringString { get; set; } = "zikica";
 
     }
+    [RxPlatformDeclare()]
+    [RxPlatformDataType(nodeId: "51C8ABC2-58B5-4BCA-9BBD-A3AF4C892547")]
+    public class DerivedDynamicSubDataType : DynamicSubDataType
+    {
+        public DerivedDynamicSubDataType()
+        {
+        }
+
+        public uint? Novi { get; set; } = 2000;
+
+    }
 
 
 
@@ -48,6 +59,7 @@ namespace DynamicAssembly
     {
         public uint? BaseItem { get; set; } = 2000;
         public string? BaseStringString { get; set; } = "zikicabase";
+        public DynamicSubDataType[] SubDataArray { get; set; } = [];
 
     }
 
@@ -67,19 +79,7 @@ namespace DynamicAssembly
             SubStringString = "subzikica"
         };
 
-        public DynamicSubDataType[] SubDataArray { get; set; } = new DynamicSubDataType[]
-        {
-            new DynamicSubDataType
-            {
-                SubItem = 6000,
-                SubStringString = "arrayzikica1"
-            },
-            new DynamicSubDataType
-            {
-                SubItem = 7000,
-                SubStringString = "arrayzikica2"
-            }
-        };
+        public new DerivedDynamicSubDataType[] SubDataArray { get; set; } = [];
         public List<DynamicSubDataType> SubDataList { get; set; } = new List<DynamicSubDataType>
         {
             new DynamicSubDataType

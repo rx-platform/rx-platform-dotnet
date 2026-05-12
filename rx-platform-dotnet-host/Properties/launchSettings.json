@@ -3,7 +3,7 @@
     "rx-interactive": {
       "commandName": "Executable",
       "executablePath": "C:\\RX\\Native\\VS\\RxMainSolution\\x64\\DebugPy\\rx-interactive.exe",
-      "commandLineArgs": "--debug \r\n--dotnet-version latest\r\n--dotnet-app \"..\\ENSACO.RxPlatform.Attributes\\bin\\Debug\\net8.0\"\r\n--dotnet-host \"rx-platform-dotnet-host\\Debug\\net8.0\"\r\n",
+      "commandLineArgs": "--debug \r\n--dotnet-version 9\r\n--dotnet-app \"..\\DynamicAssembly\\bin\\Debug\\net8.0\"\r\n--dotnet-host \".\\bin\\Debug\\net8.0\"\r\n",
       "workingDirectory": "."
     },
     "Profile 1": {

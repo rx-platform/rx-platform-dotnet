@@ -17,9 +17,9 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 {
     internal static class RxRuntimeExecuter
     {
-        static RxPlatformRuntimeBase? GetRuntime(rx_item_type type, nint whose, ref Action? started, ref Dictionary<string, object> childrenValues, ref RxNodeId id)
+        static RxPlatformRuntimeBase? GetRuntime(rx_item_type type, nint whose, ref Action? started, ref Dictionary<string, object> childrenValues, ref RxNodeId id, ref TaskCompletionSource? initCompleted)
         {
-
+            started = null;
             switch (type)
             {
                 case rx_item_type.rx_object:
@@ -35,8 +35,16 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (objectRuntime != null)
                                     {
                                         id = obj.nodeId;
-                                        started = obj.startedMethod;
-                                        if (RuntimeConstructAlgorithms.TryGetConstructionData(obj.nodeId, obj.path, out var constructData) && constructData != null)
+                                        initCompleted = obj.initCompleted;
+                                        if (obj.startedMethod != null)
+                                        {
+                                            var del = obj.startedMethod.GetDelegate();
+                                            if (del != null)
+                                            {
+                                                started = del;
+                                            }
+                                        }
+                                        if (RuntimeConstructAlgorithms.TryGetConstructionData(obj.nodeId, "", out var constructData) && constructData != null)
                                         {
                                             foreach (var child in constructData.structs)
                                             {
@@ -70,7 +78,14 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (sourceRuntime != null)
                                     {
                                         id = src.nodeId;
-                                        started = src.startedMethod;
+                                        if (src.startedMethod != null)
+                                        {
+                                            var del = src.startedMethod.GetDelegate();
+                                            if (del != null)
+                                            {
+                                                started = del;
+                                            }
+                                        }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(src.nodeId, src.path, out var constructData) && constructData != null)
                                         {
                                             foreach (var child in constructData.structs)
@@ -106,7 +121,14 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (structRuntime != null)
                                     {
                                         id = str.nodeId;
-                                        started = str.startedMethod;
+                                        if (str.startedMethod != null)
+                                        {
+                                            var del = str.startedMethod.GetDelegate();
+                                            if (del != null)
+                                            {
+                                                started = del;
+                                            }
+                                        }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(str.nodeId, str.path, out var constructData) && constructData != null)
                                         {
                                             foreach (var child in constructData.structs)
@@ -141,7 +163,14 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (objectRuntime != null)
                                     {
                                         id = map.nodeId;
-                                        started = map.startedMethod;
+                                        if (map.startedMethod != null)
+                                        {
+                                            var del = map.startedMethod.GetDelegate();
+                                            if (del != null)
+                                            {
+                                                started = del;
+                                            }
+                                        }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(map.nodeId, map.path, out var constructData) && constructData != null)
                                         {
                                             foreach (var child in constructData.structs)
@@ -176,7 +205,14 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (objectRuntime != null)
                                     {
                                         id = evt.nodeId;
-                                        started = evt.startedMethod;
+                                        if (evt.startedMethod != null)
+                                        {
+                                            var del = evt.startedMethod.GetDelegate();
+                                            if (del != null)
+                                            {
+                                                started = del;
+                                            }
+                                        }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(evt.nodeId, evt.path, out var constructData) && constructData != null)
                                         {
                                             foreach (var child in constructData.structs)
@@ -212,7 +248,14 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (objectRuntime != null)
                                     {
                                         id = evt.nodeId;
-                                        started = evt.startedMethod;
+                                        if (evt.startedMethod != null)
+                                        {
+                                            var del = evt.startedMethod.GetDelegate();
+                                            if (del != null)
+                                            {
+                                                started = del;
+                                            }
+                                        }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(evt.nodeId, evt.path, out var constructData) && constructData != null)
                                         {
                                             foreach (var child in constructData.structs)
@@ -468,32 +511,33 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 ValuesConvertor.ConvertValueFromRx(ref value[i], ref objVal);
                 vals[i] = new Tuple<string, object?>(nameStr, objVal);
             }
-            Task.Run(() =>
+            try
             {
-                try
+                Action? started = null;
+                Dictionary<string, object> childrenValues = new Dictionary<string, object>();
+                RxNodeId id = RxNodeId.NullId;
+                TaskCompletionSource? initCompleted = null;
+                var obj = GetRuntime(type, whose, ref started, ref childrenValues, ref id, ref initCompleted);
+                if (obj != null)
                 {
-                    Action? started = null;
-                    Dictionary<string, object> childrenValues = new Dictionary<string, object>();
-                    RxNodeId id = RxNodeId.NullId;
-                    var obj = GetRuntime(type, whose, ref started, ref childrenValues, ref id);
-                    if (obj != null)
+                    if (!id.IsNull() && type == rx_item_type.rx_object)
                     {
-                        if (!id.IsNull())
-                        {
-                            RuntimeConstructAlgorithms.RemoveFromConstructionData(id);
-                        }
-                        obj.__rxInitialValuesCallback(vals, childrenValues);
-                        if (started != null)
-                            started();
+                        RuntimeConstructAlgorithms.RemoveFromConstructionData(id);
                     }
+                    obj.__rxInitialValuesCallback(vals, childrenValues);
+                    if (started != null)
+                    {
+                        started();
+                    }
+                    initCompleted?.SetResult();
                 }
-                catch (Exception ex)
-                {
-                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.InitialRuntimeValues", 200
-                        , $"Error sending initial values for runtime object 0x{whose.ToString("X")}: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.InitialRuntimeValues", 200
+                    , $"Error sending initial values for runtime object 0x{whose.ToString("X")}: {ex.Message}");
 
-                }
-            });
+            }
         }
 
         internal static void ExecuteMethod(uint transId, nint whose, string methodStr, string value)
@@ -506,12 +550,12 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                     var obj = GetObject(whose);
                     if (obj != null)
                     {
-                        await obj.__rxExecuteMethod(methodStr, value);
+                        string result = await obj.__rxExecuteMethod(methodStr, value);
 
                         rx_result_struct ret = new rx_result_struct();
                         ret.count = 0;
                         if (PlatformHostMain.api.ExecuteDone != null)
-                            PlatformHostMain.api.ExecuteDone(transId, whose, "{}", ret);
+                            PlatformHostMain.api.ExecuteDone(transId, whose, result, ret);
                     }
                     else
                     {
