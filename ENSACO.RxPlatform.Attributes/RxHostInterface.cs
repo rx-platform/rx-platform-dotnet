@@ -11,5 +11,6 @@ namespace ENSACO.RxPlatform.Host
         public string Name { get; set; } = "";
         public string Information { get; set; } = "";
         public string DefaultDirectory { get; set; } = "";
+        public string AssemblyName { get; set; } = "";
     }
 }

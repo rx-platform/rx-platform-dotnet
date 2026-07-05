@@ -1,4 +1,5 @@
 ﻿using ENSACO.RxPlatform.Model;
+using System.Reflection;
 
 namespace ENSACO.RxPlatform.Attributes
 {
@@ -38,6 +39,20 @@ namespace ENSACO.RxPlatform.Attributes
     public class RxPlatformRuntimeAttribute : Attribute
     {
         public RxPlatformRuntimeAttribute()
+        {
+        }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    public class RxPlatformObjectMonitorAttribute : Attribute
+    {
+        public RxPlatformObjectMonitorAttribute()
+        {
+        }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    public class RxPlatformStructMonitorAttribute : Attribute
+    {
+        public RxPlatformStructMonitorAttribute()
         {
         }
     }
@@ -125,15 +140,22 @@ namespace ENSACO.RxPlatform.Attributes
     }
 
 
-    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
     public class RxPlatformMethodType : RxPlatformTypeAttribute
     {
-        public RxPlatformMethodType(string nodeId, string directory = "", string name = "")
-            : base(nodeId, directory, name)
+        public RxPlatformMethodType(string nodeId)
+            : base(nodeId)
         {
         }
     }
-
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+    public class RxPlatformAbstractMethod : RxPlatformMethodType
+    {
+        public RxPlatformAbstractMethod()
+            : base("1:i:19")
+        {
+        }
+    }
     [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
     public class RxPlatformRelationAttribute : RxPlatformTypeAttribute
     {

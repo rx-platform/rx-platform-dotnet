@@ -35,6 +35,8 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     {
                         propType = prop.PropertyType;
                     }
+                    string simpleTypeName = propTypeName.Contains(".") ? propTypeName.Substring(propTypeName.LastIndexOf(".") + 1) : propTypeName;
+
                     bool hasPrivateSetter = false;
                     bool initOnly = false;
                     if (prop.SetMethod != null)
@@ -56,7 +58,11 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                         codeType = propTypeName,
                         defaultValue = defaultValue,
                         itemId = prop.Name,
-                        eventName = ReflectionHelpers.EventType(type, prop),
+                        eventName = ReflectionHelpers.EventType(type, prop, null),
+                        connectedEventName = ReflectionHelpers.EventType(type, prop, $"On{prop.Name}Connected"),
+                        disconnectedEventName = ReflectionHelpers.EventType(type, prop, $"On{prop.Name}Disconnected"),
+                        typeConnectedEventName = ReflectionHelpers.EventTypeType(type, prop, $"On{simpleTypeName}Connected"),
+                        typeDisconnectedEventName = ReflectionHelpers.EventTypeType(type, prop, $"On{simpleTypeName}Disconnected"),
                         canWrite = prop.CanWrite && prop.SetMethod != null && !initOnly,
                         setModifier = hasPrivateSetter ? "protected" : ""
 
@@ -125,12 +131,69 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                 data[kvp.Key] = objType;
             }
         }
+
+        private void FillTypes(Dictionary<RxNodeId, PlatformMonitoredTypeBuildMeta> data) 
+        {
+            foreach (var kvp in data)
+            {
+                if (!kvp.Value.valid)
+                    continue;
+
+                var objType = kvp.Value;
+                if (!objType.valid)
+                    continue;
+                if (objType.type == null || objType.defaultConstructor == null)
+                {
+                    objType.valid = false;
+                    continue;
+                }
+                object? instance = objType.defaultConstructor(null);
+                if (instance == null)
+                {
+                    objType.valid = false;
+                    continue;
+                }
+                Type? instanceType = objType.type;
+                Dictionary<string, PropertyInfo> propertyInfos = new Dictionary<string, PropertyInfo>();
+                while (instanceType != null)
+                {
+                    var props = ReflectionHelpers.GetRelationsPropertyInfos(instanceType, true);
+                    if (props != null)
+                    {
+                        foreach (var m in props)
+                        {
+                            if (!propertyInfos.ContainsKey(m.Name))
+                            {
+                                propertyInfos.Add(m.Name, m);
+                            }
+                        }
+                    }
+                    instanceType = instanceType.BaseType;
+                    if (instanceType == null || (instanceType.BaseType != null && instanceType.BaseType == typeof(RxPlatformRuntimeBase)))
+                    {
+                        break;
+                    }
+                }
+                var relations = GetItems(objType.type, propertyInfos.Values.ToArray(), instance
+                    , ref objType.relationValues);
+                if (relations == null)
+                {
+                    objType.valid = false;
+                    continue;
+                }
+                objType.definedRelations = relations.ToArray();
+                data[kvp.Key] = objType;
+            }
+        }
         public void FillTypes(PlatformTypeBuildData data)
         {
             FillTypes(data.ObjectTypes);
             FillTypes(data.PortTypes);
             FillTypes(data.DomainTypes);
             FillTypes(data.ApplicationTypes);
+
+            FillTypes(data.MonitoredObjects);
+            FillTypes(data.MonitoredObjects);
 
         }
     }

@@ -1,4 +1,5 @@
-﻿using ENSACO.RxPlatform.Attributes;
+﻿using ENSACO.RxPlatform;
+using ENSACO.RxPlatform.Attributes;
 using ENSACO.RxPlatform.Runtime;
 
 namespace DynamicAssembly
@@ -7,20 +8,20 @@ namespace DynamicAssembly
     [RxPlatformSourceType(nodeId: "d290f1ee-6c54-4b01-90e6-d701748f0851")]
     public class DynamicSource : RxPlatformSourceRuntime
     {
-        public uint? PeriodMsZrna { get; set; } = 1000;
+        public uint? PeriodMsZrna { get; init; } = 1000;
         public virtual string? PeriodString { get; set; } = "zikica";
-        public bool? ZeljkoProp44 { get; set; } = true;
+        public bool? ZeljkoProp44 { get; init; } = true;
 
 
 
         public virtual event Action<string?>? OnPeriodStringChange;
 
-        public byte? Borisa { get; set; } = 55;
+        public byte? Borisa { get; init; } = 55;
 
         public void Started()
         {
             OnPeriodStringChange += DynamicSource_OnPeriodStringChange;
-            Console.WriteLine($"DynamicSource: Started method called.SubPeriodString = {SubStruct.SubPeriodString}");
+            RxPlatformLog.WriteLogTrace("test", $"DynamicSource: Started method called.SubPeriodString = {SubStruct.SubPeriodString}");
             SourceChanged("perica");
         }
 
@@ -48,7 +49,7 @@ namespace DynamicAssembly
 
         public void Stopping()
         {
-            Console.WriteLine("DynamicSource: Stopping method called.");
+            RxPlatformLog.WriteLogTrace("test", "DynamicSource: Stopping method called.");
         }
 
     }

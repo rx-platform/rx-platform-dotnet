@@ -30,6 +30,8 @@ namespace ENSACO.RxPlatform.Hosting.Interface
         internal IntPtr source_change;    // dotnetSourceChange_t
 
         internal IntPtr fire_event;    // dotnetFireEvent_t
+
+        internal IntPtr execute_value;    // dotnetExecuteValue_t
     };
 
 #pragma warning restore CS0649
@@ -82,6 +84,10 @@ namespace ENSACO.RxPlatform.Hosting.Interface
     internal unsafe delegate void dotnetRuntimeResultDelegate(UInt64 transId
         , rx_result_struct result);
 
+    internal unsafe delegate void dotnetExecuteRuntimeResultDelegate(UInt64 transId
+        , char* value
+        , rx_result_struct result);
+
 
     internal unsafe delegate void dotnetResultCallbackDelegate(
         UInt32 transId,
@@ -95,7 +101,17 @@ namespace ENSACO.RxPlatform.Hosting.Interface
         , nint instance
         , UIntPtr idx
         , typed_value_type value
-        , IntPtr callback /*dotnetRuntimeResultDelegate*/);
+        , IntPtr callback);
+
+
+
+    internal unsafe delegate void dotnetExecuteValueDelegate(
+        rx_item_type itemType
+        , UInt64 transId
+        , nint instance
+        , UIntPtr idx
+        , typed_value_type value
+        , IntPtr callback );
 
 
     internal unsafe delegate void dotnetExecuteDoneDelegate(
@@ -146,6 +162,9 @@ namespace ENSACO.RxPlatform.Hosting.Interface
             SourceChange = (dotnetSourceChangeDelegate)Marshal.GetDelegateForFunctionPointer(api.source_change, typeof(dotnetSourceChangeDelegate));
 
             FireEvent = (dotnetFireEventDelegate)Marshal.GetDelegateForFunctionPointer(api.fire_event, typeof(dotnetFireEventDelegate));
+
+            ExecuteValue = (dotnetExecuteValueDelegate)Marshal.GetDelegateForFunctionPointer(api.execute_value, typeof(dotnetExecuteValueDelegate));
+
         }
 
         internal dotnetWriteLogDelegate? WriteLog { get; set; }
@@ -240,5 +259,6 @@ namespace ENSACO.RxPlatform.Hosting.Interface
         internal dotnetSourceWriteDoneDelegate? SourceWriteDone { get; set; } = null;
         internal dotnetSourceChangeDelegate? SourceChange { get; set; } = null;
         internal dotnetFireEventDelegate? FireEvent { get; set; } = null;
+        internal dotnetExecuteValueDelegate? ExecuteValue { get; set; } = null;
     }
 }

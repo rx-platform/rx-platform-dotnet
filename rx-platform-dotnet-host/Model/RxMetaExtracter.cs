@@ -93,6 +93,31 @@ namespace ENSACO.RxPlatform.Hosting.Model
             };
             dict.Add(platformTypeData.id, platformTypeData);
         }
+        static void AddRxType(RxPlatformObjectMonitorAttribute attr, Dictionary<RxNodeId, PlatformMonitoredTypeBuildMeta> dict, Type type, bool defined, bool runtime, HostedPlatformLibrary? hostLib)
+        {
+            var platformData = new PlatformMonitoredTypeBuildMeta
+            {
+                id = new RxNodeId(type.GUID, 1),
+                defaultConstructor = null,
+                whose = hostLib,
+                valid = true,
+                type = type
+            };
+            dict.Add(platformData.id, platformData);
+        }
+
+        static void AddRxType(RxPlatformStructMonitorAttribute attr, Dictionary<RxNodeId, PlatformMonitoredTypeBuildMeta> dict, Type type, bool defined, bool runtime, HostedPlatformLibrary? hostLib)
+        {
+            var platformData = new PlatformMonitoredTypeBuildMeta
+            {
+                id = new RxNodeId(type.GUID, 1),
+                defaultConstructor = null,
+                whose = hostLib,
+                valid = true,
+                type = type
+            };
+            dict.Add(platformData.id, platformData);
+        }
         static void AddRxType(RxPlatformDataType attr, Dictionary<RxNodeId, PlatformDataTypeBuildMeta> dict, Type type, bool defined, bool runtime, HostedPlatformLibrary? hostLib)
         {
             RxNodeId parentId = new RxNodeId();
@@ -262,6 +287,18 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     if (dataAttr != null)
                     {
                         AddRxType(dataAttr, tempData.DataTypes, type, defined, runtime, hostLib);
+                        hadOne = true;
+                    }
+                    var monObjAttr = type.GetCustomAttribute<RxPlatformObjectMonitorAttribute>();
+                    if (monObjAttr != null)
+                    {
+                        AddRxType(monObjAttr, tempData.MonitoredObjects, type, defined, runtime, hostLib);
+                        hadOne = true;
+                    }
+                    var monStructAttr = type.GetCustomAttribute<RxPlatformStructMonitorAttribute>();
+                    if (monStructAttr != null)
+                    {
+                        AddRxType(monStructAttr, tempData.MonitoredObjects, type, defined, runtime, hostLib);
                         hadOne = true;
                     }
                     else if (!hadOne && (defined || runtime))

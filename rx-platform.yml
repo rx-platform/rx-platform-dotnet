@@ -1,0 +1,17 @@
+
+storage.user: "C:\RX\Plugins\Dev\TestConfigs\dotnet\config"
+
+dotnet.version: "latest"
+#dotnet.version: "8"
+dotnet.host_path: "c:\RX\Native\dotnet\rx-platform-dotnet-host\bin\Debug\net8.0"
+#path where user application assemblies are located
+dotnet.app_path: "c:\RX\Native\dotnet\DynamicAssembly\bin\Debug\net8.0"
+#dotnet.app_path: "C:\RX\LINN\OilGas\ENSACO.LINN.OilGas/bin/Debug/net8.0"
+#dotnet.app_path: "C:\RX\ENSACO\Makpetrol\Ilinden-DL8000\RxIlinden\ENSACO.Makpterol.Ilinden\bin\Debug\net8.0"
+
+
+#dotnet.app_path: "C:\RX\LINN\OilGas\ENSACO.Ilinden/bin/Debug/net8.0"
+#dotnet.lib_path: "C:\RX\LINN\OilGas\ENSACO.Ilinden/bin/Release/net8.0/publish/win-x64"
+
+
+dotnet.debug_break: true

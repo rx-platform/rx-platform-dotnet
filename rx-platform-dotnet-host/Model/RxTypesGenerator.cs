@@ -60,7 +60,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
     }
 }
 ";
-            
+
 
             Exception? exception = null;
             unsafe
@@ -71,7 +71,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     CommonInterface.CreateNodeIdFromRxNodeId(parentNodeId);
                 //Console.WriteLine("Generating from:\r\n" + def);
                 var result = PlatformHostMain.api.BuildType(rx_item_type.rx_data_type
-                    , lib.GetPluginName(), &id, &parentId, name, path, 0x10001, 0, def
+                    , lib.GetLibTransferName(), &id, &parentId, name, path, 0x10001, 0, def
                     , 0
                     , "", "");
                 exception = CommonInterface.GetExceptionFromResult(&result);
@@ -187,7 +187,6 @@ namespace ENSACO.RxPlatform.Hosting.Model
 "; def += @"
 }
 ";
-
             Exception? exception = null;
             unsafe
             {
@@ -196,7 +195,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     CommonInterface.CreateNodeIdFromInt(defaultParent) :
                     CommonInterface.CreateNodeIdFromRxNodeId(parentNodeId);
                 var result = PlatformHostMain.api.BuildType(itemType
-                    , lib.GetPluginName(), &id, &parentId, name, path, 0x10001, 0, def
+                    , lib.GetLibTransferName(), &id, &parentId, name, path, 0x10001, 0, def
                     , !string.IsNullOrEmpty(codeInfo) ? 1 : 0
                     , connections, codeInfo);
                 exception = CommonInterface.GetExceptionFromResult(&result);
@@ -256,7 +255,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , type.sources
                     , type.mappers
                     , type.relations
-                    , type.runtimeConnections + "|" + type.initialValues + "|" + type.relationValues
+                    , type.runtimeConnections + "|" + type.initialValues + "|" + type.relationValues + "|" + type.callableValues
                     , lib))
                     return false;//no changes
 
@@ -575,6 +574,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
         def += @"
     }
 }";
+
+
             Exception? exception = null;
             unsafe
             {
@@ -583,7 +584,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     CommonInterface.CreateNodeIdFromInt(defaultParent) :
                     CommonInterface.CreateNodeIdFromRxNodeId(parentNodeId);
                 var result = PlatformHostMain.api.BuildType(itemType
-                    , lib.GetPluginName(), &id, &parentId, name, path, 0x10001, 0, def
+                    , lib.GetLibTransferName(), &id, &parentId, name, path, 0x10001, 0, def
                     , runtimeType ? 1 : 0
                     , connections, "");
                 exception = CommonInterface.GetExceptionFromResult(&result);

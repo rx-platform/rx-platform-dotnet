@@ -1,4 +1,5 @@
-﻿using ENSACO.RxPlatform.Attributes;
+﻿using ENSACO.RxPlatform;
+using ENSACO.RxPlatform.Attributes;
 using ENSACO.RxPlatform.Runtime;
 
 namespace DynamicAssembly
@@ -7,21 +8,21 @@ namespace DynamicAssembly
     [RxPlatformStructType(nodeId: "54EDB8C9-81B4-4E9D-A0CB-826C5407DAC4")]
     public class DynamicSubStruct : RxPlatformStructRuntime
     {
-        public uint? SubPeriodMsZrna { get; set; } = 1000;
+        public uint? SubPeriodMsZrna { get; init; } = 1000;
         public virtual string? SubPeriodString { get; set; } = "zikica";
-        public bool? SubZeljkoProp44 { get; set; } = true;
+        public bool SubZeljkoProp44 { get; } = true;
 
 
 
-        public byte? SubBorisa { get; set; } = 55;
+        public byte SubBorisa { get; init; } = 55;
 
         public void Started()
         {
-            Console.WriteLine($"DynamicSubStruct: Started method called.SubPeriodString = {SubPeriodString}");
+            RxPlatformLog.WriteLogTrace("test", $"DynamicSubStruct: Started method called.SubPeriodString = {SubPeriodString}");
         }
         public void Stopping()
         {
-            Console.WriteLine("DynamicSubStruct: Stopping method called.");
+            RxPlatformLog.WriteLogTrace("test", "DynamicSubStruct: Stopping method called.");
         }
 
     }
@@ -33,10 +34,13 @@ namespace DynamicAssembly
         public DynamicStruct()
         {
         }
-        public DateTime? TimeProp { get; set; } = DateTime.Now;
-        public uint? PeriodMsZrna { get; set; } = 1000;
+        public virtual string[]? StringArray { get; set; } = new string[] { "one", "two", "three" };
+
+        public virtual event Action<string[]?>? OnStringArrayChange;
+        public virtual DateTime? TimeProp { get; set; } = DateTime.Now;
+        public uint? PeriodMsZrna { get; init; } = 1000;
         public virtual string? PeriodString { get; set; } = "zikica";
-        public bool? ZeljkoProp44 { get; set; } = true;
+        public bool? ZeljkoProp44 { get; init; } = true;
 
 
 
@@ -46,7 +50,7 @@ namespace DynamicAssembly
 
         public virtual event ChangedObjProp4? OnBorisaChange;
 
-        public virtual DynamicSubStruct? SubStruct { get; } = new DynamicSubStruct
+        public virtual DynamicSubStruct SubStruct { get; } = new DynamicSubStruct
         {
             SubBorisa = 33,
             SubPeriodString = "SubZika222"
@@ -54,15 +58,15 @@ namespace DynamicAssembly
 
         public void Started()
         {
-            Console.WriteLine($"DynamicStruct: Started method called.SubPeriodString = {SubStruct.SubPeriodString}");
+            RxPlatformLog.WriteLogTrace("test", $"DynamicStruct: Started method called.SubPeriodString = {SubStruct.SubPeriodString}");
             OnBorisaChange += (newValue) =>
             {
-                Console.WriteLine($"DynamicStruct: OnBorisaChange event fired. New Value: {newValue}");
+                RxPlatformLog.WriteLogTrace("test", $"DynamicStruct: OnBorisaChange event fired. New Value: {newValue}");
             };
         }
         public void Stopping()
         {
-            Console.WriteLine("DynamicStruct: Stopping method called.");
+            RxPlatformLog.WriteLogTrace("test", "DynamicStruct: Stopping method called.");
         }
 
     }

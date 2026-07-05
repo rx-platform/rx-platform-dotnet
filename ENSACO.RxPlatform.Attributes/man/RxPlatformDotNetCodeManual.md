@@ -409,7 +409,7 @@ They can be used to provide interface for platform to execute code inside your C
 or to define methods that can be overridden by platform runtime to provide access to platform defined methods.
 
   - **implemented methods** - these methods are mapped from methods that have the following characteristics:
-    - non-virtual
+    - non-virtual or virtual
     - non-static
     - zero arguments
     - one argument of type decorated with ```RxPlatformDataType``` attribute
@@ -418,13 +418,12 @@ or to define methods that can be overridden by platform runtime to provide acces
     - return type ```Task<T>``` where ```T``` is type decorated with ```RxPlatformDataType``` attribute
   
   - **callable methods** - these methods are mapped from methods that have the following characteristics:
+    - decorated with ```RxPlatformAbstractMethod``` attribute
     - virtual
     - non-static
     - zero arguments
-    - one argument of type decorated with ```RxPlatformDataType``` attribute
     - ```Task``` return type
-    - ```void``` return type
-    - return type ```Task<T>``` where ```T``` is type decorated with ```RxPlatformDataType``` attribute
+    - return type ```Task<T>``` where ```T``` is non null-able type decorated with ```RxPlatformDataType``` attribute
 
 
 Example of implemented and callable methods is shown bellow:
@@ -439,7 +438,7 @@ class Heater : RxPlatformObjectRuntime
     // implemented method
     // called by the platform from sensors data inside your code
     // you have to provide implementation for this method
-    public virtual async Task PersonEntered()
+    public async Task PersonEntered()
     {
         // implementation
         HeaterStarter starter = new HeaterStarter();
@@ -448,6 +447,7 @@ class Heater : RxPlatformObjectRuntime
     // callable method
     // overridden by platform runtime to provide access to platform defined methods 
     // so you can call it from code to access functionality defined by field devices
+    [RxPlatformAbstractMethod]
     public virtual async Task PerformDiagnostics()
     {
         return Task.CompletedTask;

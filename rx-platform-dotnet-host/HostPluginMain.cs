@@ -105,7 +105,11 @@ namespace ENSACO.RxPlatform.Hosting
                     return false;
                 }   
             }
-
+            if(asm == null || context == null)
+            {
+                RxPlatformObject.Instance.WriteLogError("HostPluginMain.InitializeAssembly", 100, $"Failed to load assembly {Path.GetFileName(pt)}.");
+                return false;
+            }
             Assembly? temp = null;
             PlatformLibraryInfo? tempInfo = null;
             var types = asm.GetExportedTypes();
@@ -130,7 +134,8 @@ namespace ENSACO.RxPlatform.Hosting
                     deinitializeMethod = type.GetMethod("Deinitialize", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
                     if (initializeMethod != null && deinitializeMethod != null)
                     {
-                        object? retVal = initializeMethod.Invoke(null, new object[] { Path.GetDirectoryName(pt) });
+
+                        object? retVal = initializeMethod.Invoke(null, new object[] { Path.GetDirectoryName(pt)?? "" });
                         if (retVal != null && retVal is PlatformLibraryInfo)
                         {
                             if (temp != null)
@@ -144,6 +149,8 @@ namespace ENSACO.RxPlatform.Hosting
                                 tempInfo.Information = $"{asm.GetName().Name} Ver {asm.GetName().Version}";
                             if (string.IsNullOrEmpty(tempInfo.Name))
                                 tempInfo.Name = $"{asm.GetName().Name}".Replace('.', '_');
+                            if (string.IsNullOrEmpty(tempInfo.AssemblyName))
+                                tempInfo.AssemblyName = Path.GetFileName(pt)?? "";
 
                         }
                     }
@@ -153,7 +160,8 @@ namespace ENSACO.RxPlatform.Hosting
                         {
                             Name = $"{asm.GetName().Name}".Replace('.', '_'),
                             Information = $"{asm.GetName().Name} Ver {asm.GetName().Version}",
-                            DefaultDirectory = ""
+                            DefaultDirectory = "",
+                            AssemblyName = Path.GetFileName(pt)
                         };
                     }
                 }
@@ -168,9 +176,16 @@ namespace ENSACO.RxPlatform.Hosting
             path = pt;
             loadContext = context;
             assemblyData = buffer;
-            assemblyName = assembly.GetName().Name + ".DynamicTypes" + RxMemoryCompiler.overridePostfix;
+            assemblyName = (assembly.GetName().Name?? "") + ".DynamicTypes" + RxMemoryCompiler.overridePostfix;
 
             return true;
+        }
+        internal string GetLibTransferName()
+        {
+            if (pluginInfo == null)
+                return "";
+            else
+                return $"{pluginInfo.Name};{pluginInfo.AssemblyName};{pluginInfo.Information}";
         }
         internal string GetPluginName()
         {

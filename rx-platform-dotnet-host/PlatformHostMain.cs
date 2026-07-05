@@ -146,7 +146,11 @@ namespace ENSACO.RxPlatform.Hosting
                 {
                     RegisterRuntimes = RxRuntimeRegistrator.RegisterRuntime,
                     UnregisterRuntimes = RxRuntimeRegistrator.UnregisterRuntime,
+                    MonitorRuntimes = RxRuntimeRegistrator.MonitorRuntime,
+                    UnmonitorRuntimes = RxRuntimeRegistrator.UnmonitorRuntime,
                     CreateRuntimes = RxRuntimeRegistrator.CreateRuntime,
+
+                    WaitCondition = ProperyValuesSynhronizator.AppendCondition,
 
                     WriteBoolRuntime = RxRuntimeExecuter.WriteProperty<bool>,
                     WriteInt8Runtime = RxRuntimeExecuter.WriteProperty<sbyte>,
@@ -184,7 +188,17 @@ namespace ENSACO.RxPlatform.Hosting
                     SourceChangedBad = RxRuntimeExecuter.SourceChangedBad,
                     FireEvent = RxRuntimeExecuter.FireEvent,
 
-                    GetInstance = RxRuntimeRegistrator.GetInstance
+                    GetInstance = RxRuntimeRegistrator.GetInstance,
+
+
+                    ExecuteObjectRuntime = RxRuntimeExecuter.ExecuteObjectProperty,
+
+                    WriteLogInfo = RxPlatformObject.Instance.WriteLogInfo,
+                    WriteLogDebug = RxPlatformObject.Instance.WriteLogDebug,
+                    WriteLogTrace = RxPlatformObject.Instance.WriteLogTrace,
+                    WriteLogError = RxPlatformObject.Instance.WriteLogError,
+                    WriteLogWarning = RxPlatformObject.Instance.WriteLogWarning,
+                    WriteLogCritical = RxPlatformObject.Instance.WriteLogCritical
                 }
                 , PlatformHostMain.JsonContext);
 

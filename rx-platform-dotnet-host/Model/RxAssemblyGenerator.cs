@@ -307,6 +307,14 @@ using System.Text.Json;
                 RxMemoryCompiler.GenerateDisplayTypeSourceCode(kvp.Value, codeStream);
             }
 
+            foreach (var kvp in tempData.MonitoredObjects)
+            {
+                if (!kvp.Value.valid)
+                    continue;
+
+                RxMemoryCompiler.GenerateMonitoredObjectTypeSourceCode(kvp.Value, codeStream);
+            }
+
             return codeStream.ToString();
         }
     }

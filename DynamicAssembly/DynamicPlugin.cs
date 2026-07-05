@@ -1,4 +1,5 @@
-﻿using ENSACO.RxPlatform.Attributes;
+﻿using ENSACO.RxPlatform;
+using ENSACO.RxPlatform.Attributes;
 using ENSACO.RxPlatform.Host;
 using ENSACO.RxPlatform.Modbus;
 using ENSACO.RxPlatform.Model.Modbus;
@@ -13,11 +14,11 @@ namespace DynamicAssembly
     {
         public static PlatformLibraryInfo Initialize(string path)
         {
-            Console.WriteLine($"DynamicPlugin: Initialize called with path: {path}");
+            RxPlatformLog.WriteLogTrace("test", $"DynamicPlugin: Initialize called with path: {path}");
             // This method is just to force the compiler to include this class in the assembly
             return new PlatformLibraryInfo
             {
-                Name = "test1"
+                Name = "test1",
             };
         }
 
@@ -101,35 +102,35 @@ namespace DynamicAssembly
                     //    }, i==2 ? "TestObj" : $"TestObj{i}");
                     //}
                     //DynamicObjectDerived? src = await RxPlatformObjectRuntime.CreateInstance(new DynamicObjectDerived(new DynamicDataType
-                    DynamicObjectDerived ? src = await RxPlatformObjectRuntime.CreateInstance(new DynamicObjectDerived(new DynamicDataType
-                    {
-                        SubData = new DynamicSubDataType
-                        {
-                            SubItem = 1234,
-                            SubStringString = "Hello from DynamicPlugin"
-                        }
-                    }), "DynObj");
+                    //DynamicObjectDerived ? src = await RxPlatformObjectRuntime.CreateInstance(new DynamicObjectDerived(new DynamicDataType
+                    //{
+                    //    SubData = new DynamicSubDataType
+                    //    {
+                    //        SubItem = 1234,
+                    //        SubStringString = "Hello from DynamicPlugin"
+                    //    }
+                    //}), "DynObj");
 
-                    if (src == null)
-                    {
-                        Console.WriteLine("DynamicPlugin: Failed to create DynamicObject instance.");
-                        return;
-                    }
-                    else
-                    {
-                        src.ObjectProp2 = "Initial Value from DynamicPlugin";
-                        src.OnObjectProp2Change += (newValue) =>
-                        {
-                            Console.WriteLine($"DynamicPlugin: OnObjectProp2Change event fired. New Value: {newValue}");
-                        };
-                        Console.WriteLine("DynamicPlugin: Created DynamicObject instance.");
-                    }
-                    // 
-                    await Task.Delay(10000);
+                    //if (src == null)
+                    //{
+                    //    RxPlatformLog.WriteLogTrace("test", "DynamicPlugin: Failed to create DynamicObject instance.");
+                    //    return;
+                    //}
+                    //else
+                    //{
+                    //    src.ObjectProp2 = "Initial Value from DynamicPlugin";
+                    //    src.OnObjectProp2Change += (newValue) =>
+                    //    {
+                    //        RxPlatformLog.WriteLogTrace("test", $"DynamicPlugin: OnObjectProp2Change event fired. New Value: {newValue}");
+                    //    };
+                    //    RxPlatformLog.WriteLogTrace("test", "DynamicPlugin: Created DynamicObject instance.");
+                    //}
+                    //// 
+                    //await Task.Delay(10000);
 
-                    //Console.WriteLine("DynamicPlugin: Disposing DynamicObject instance.");
+                    //RxPlatformLog.WriteLogTrace("test", "DynamicPlugin: Disposing DynamicObject instance.");
                     //await src.DisposeAsync();
-                    //Console.WriteLine("DynamicPlugin: Disposed DynamicObject instance.");
+                    //RxPlatformLog.WriteLogTrace("test", "DynamicPlugin: Disposed DynamicObject instance.");
 
                     return;
                                        

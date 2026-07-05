@@ -140,7 +140,7 @@ namespace TestingPlatform
     [RxPlatformLibrary()]
     public class TestingPlatformMain
     {
-        public static PlatformLibraryInfo Initialize()
+        public static PlatformLibraryInfo Initialize(string path)
         {
             return new PlatformLibraryInfo
             {
@@ -163,11 +163,23 @@ Now you can build the application using the following command:
 ```bash
 dotnet build
 ```
+
+In order for platform to load your library, you need to place application configuration file
+`rx-platform.app.json` in the same directory as the built assembly.
+```json
+{
+	"RunAssemblies": [
+		"TestingPlatform.dll"
+	]
+}
+```
+
 With dotnet assembly built now we have to setup ```rx-platform``` to load our library.
 First create directory for platform configuration files:
 ```bash
 mkdir rx-config
 ```
+
 After this, we need to create a configuration file for the platform.
 To do this, create a new file named `rx-platform.yml` in the same directory and add the following content:
 ```yaml

@@ -153,6 +153,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal string? runtimeConnections;
         internal string? initialValues;
         internal string? relationValues;
+        internal string? callableValues;
         internal string? codeInfo;
         internal MethodInfo[]? requestHandlingMethods;
         internal SourceWriteMethodData[]? sourceWriteMethods;
@@ -174,6 +175,30 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal Type? type;
     }
 
+    struct PlatformMonitoredTypeBuildMeta
+    {
+        internal RxNodeId id;
+
+        internal Func<string?, object?>? defaultConstructor;
+
+        internal Func<string?, object?>? runtimeConstructor;
+        internal MethodInfo? startMethod;
+        internal MethodInfo? stopMethod;
+        internal RxPropertyCodeData[] definedProperties;
+        internal RxStructCodeData[] definedStructs;
+        internal RxOwnMethodCodeData[] definedMethods;
+        internal RxCallableMethodCodeData[] callableMethods;
+        internal RxOwnRelationCodeData[] definedRelations;
+        internal HostedPlatformLibrary? whose;
+        internal bool valid;
+        internal Type? type;
+        internal string? codeNamespace;
+        internal string? runtimeConnections;
+        internal string? initialValues;
+        internal string? relationValues;
+        internal string? callableValues;
+        internal string? codeInfo;
+    }
     class PlatformTypeBuildData
     {
         internal Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformObjectType>> ObjectTypes
@@ -199,6 +224,13 @@ namespace ENSACO.RxPlatform.Hosting.Model
             = new Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformFilterType>>();
         internal Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformDisplayType>> DisplayTypes
             = new Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformDisplayType>>();
+
+
+        internal Dictionary<RxNodeId, PlatformMonitoredTypeBuildMeta> MonitoredObjects
+            = new Dictionary<RxNodeId, PlatformMonitoredTypeBuildMeta>();
+        internal Dictionary<RxNodeId, PlatformMonitoredTypeBuildMeta> MonitoredStructs
+            = new Dictionary<RxNodeId, PlatformMonitoredTypeBuildMeta>();
+
 
         internal Dictionary<RxNodeId, PlatformDataTypeBuildMeta> DataTypes
             = new Dictionary<RxNodeId, PlatformDataTypeBuildMeta>();

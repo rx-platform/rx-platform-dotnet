@@ -234,7 +234,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                 while (instanceType != null)
                 {
                     List<MethodInfo> metToProcess = new List<MethodInfo>();
-                    var met = ReflectionHelpers.GetDefinedMethods(instanceType);
+                    var met = ReflectionHelpers.GetDefinedMethods(instanceType, true);
                     if (met != null)
                     {
                         foreach (var m in met)

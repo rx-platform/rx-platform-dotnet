@@ -46,11 +46,13 @@
         public bool isAsync { get; set; } = false;
         public string? argumentType { get; set; } = null;
         public bool isNullAbleArgument { get; set; } = false;
+        public bool isStructArgument { get; set; } = false;
         public string? defaultValue { get; set; } = null;
         public bool jsonArgument { get; set; } = false;
         public string? resultType { get; set; } = null;
         public string itemId { get; set; } = "";
         public bool isNullAbleResult { get; set; } = false;
+        public bool isStructResult { get; set; } = false;
     };
 
     class RxOwnRelationCodeData
@@ -62,6 +64,10 @@
         public string? codeType { get; set; } = null;
         public string? defaultValue { get; set; } = null;
         public string? eventName { get; set; } = null;
+        public string? connectedEventName { get; set; } = null;
+        public string? disconnectedEventName { get; set; } = null;
+        public string? typeConnectedEventName { get; set; } = null;
+        public string? typeDisconnectedEventName { get; set; } = null;
         public string itemId { get; set; } = "";
     };
 

@@ -16,6 +16,11 @@ namespace ENSACO.RxPlatform.Runtime
     public delegate Task<RxPlatformObjectRuntime?> RegisterRuntimesDelegate(byte type, object prototype, string name, string path, RxNodeId id);
     public delegate Task UnregisterRuntimesDelegate(byte typeId, Type type, RxPlatformObjectRuntime instance, string name, string path, RxNodeId id);
 
+    public delegate Task<RxPlatformObjectRuntime?> MonitorRuntimesDelegate(Type monitorTpe, byte type, object prototype, string name, string path, RxNodeId id);
+    public delegate Task UnmonitorRuntimesDelegate(byte typeId, Type type, RxPlatformObjectRuntime instance, string name, string path, RxNodeId id);
+
+
+    public delegate Task<bool> WaitConditionDelegate(RxPlatformRuntimeBase instance, Func<bool> condition, UInt32 timeout);
 
     public delegate Task<bool> WriteRuntimeBoolDelegate(byte type, IntPtr instance, int index, bool value);
     public delegate Task<bool> WriteRuntimeInt8Delegate(byte type, IntPtr instance, int index, sbyte value);
@@ -33,6 +38,7 @@ namespace ENSACO.RxPlatform.Runtime
     public delegate Task<bool> WriteRuntimeBytesDelegate(byte type, IntPtr instance, int index, byte[] value);
     public delegate Task<bool> WriteRuntimeUuidDelegate(byte type, IntPtr instance, int index, Guid value);
     public delegate Task<bool> WriteRuntimeObjectDelegate(byte type, IntPtr instance, int index, object value);
+    public delegate Task<string> ExecuteRuntimeObjectDelegate(byte type, IntPtr instance, int index, object? value);
 
 
 
@@ -65,18 +71,22 @@ namespace ENSACO.RxPlatform.Runtime
     public delegate void SourceChangedObjectDelegate(IntPtr instance, object value);
     public delegate void SourceChangedBadDelegate(IntPtr instance);
 
-
     public delegate void FireEventDelegate(IntPtr instance, string value, string queue, bool state, bool remove);
-
 
     public delegate RxPlatformObjectRuntime? GetInstanceDelegate(IntPtr instancePtr);
 
+    public delegate void WriteLogDelegate(string source, ushort severity, string message);
+
     public struct RxRuntimeDelegates
     {
+        public MonitorRuntimesDelegate? MonitorRuntimes;
+        public UnmonitorRuntimesDelegate? UnmonitorRuntimes;
         public RegisterRuntimesDelegate? RegisterRuntimes;
         public UnregisterRuntimesDelegate? UnregisterRuntimes;
         public CreateRuntimesDelegate? CreateRuntimes;
         public DeleteRuntimesDelegate? DeleteRuntimes;
+
+        public WaitConditionDelegate? WaitCondition;
 
         public WriteRuntimeBoolDelegate? WriteBoolRuntime;
         public WriteRuntimeInt8Delegate? WriteInt8Runtime;
@@ -117,6 +127,15 @@ namespace ENSACO.RxPlatform.Runtime
         public FireEventDelegate? FireEvent;
 
         public GetInstanceDelegate? GetInstance;
+
+        public ExecuteRuntimeObjectDelegate? ExecuteObjectRuntime;
+
+        public WriteLogDelegate? WriteLogInfo;
+        public WriteLogDelegate? WriteLogError;
+        public WriteLogDelegate? WriteLogWarning;
+        public WriteLogDelegate? WriteLogDebug;
+        public WriteLogDelegate? WriteLogTrace;
+        public WriteLogDelegate? WriteLogCritical;
     }
 
     public class RxPlatformRuntimeBase
@@ -166,10 +185,14 @@ namespace ENSACO.RxPlatform.Runtime
         }
         public void __rxInitialValuesCallback(Tuple<string, object?>[] values, Dictionary<string, object> children)
         {
+            string fieldName;
             foreach (var value in values)
             {
                 if (value.Item2 != null)
-                { 
+                {
+                    fieldName = value.Item1 + "____rxImplementation";
+                    var fieldInfo = this.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+                    
                     var propInfo = this.GetType().GetProperty(value.Item1);
                     if (propInfo != null && propInfo.CanWrite)
                     {
@@ -179,7 +202,14 @@ namespace ENSACO.RxPlatform.Runtime
                         {
                             string jsonStr = value.Item2 as string ?? "{ }";
                             var convertedValue = JsonSerializer.Deserialize(jsonStr, propType, __jsonContext);
-                            propInfo.SetValue(this, convertedValue);
+                            if (fieldInfo != null)
+                            {
+                                fieldInfo.SetValue(this, convertedValue);
+                            }
+                            else
+                            {
+                                propInfo.SetValue(this, convertedValue);
+                            }
                         }
                         else
                         {
@@ -189,14 +219,20 @@ namespace ENSACO.RxPlatform.Runtime
                                 var convertedValue = ConvertObject(value.Item2, propType);
                                 if (convertedValue != null)
                                 {
-                                    propInfo.SetValue(this, convertedValue);
+                                    if (fieldInfo != null)
+                                    {
+                                        fieldInfo.SetValue(this, convertedValue);
+                                    }
+                                    else
+                                    {
+                                        propInfo.SetValue(this, convertedValue);
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-            string fieldName;
             foreach (var value in children)
             {
                 fieldName = value.Key + "____rxImplementation";
@@ -297,6 +333,10 @@ namespace ENSACO.RxPlatform.Runtime
             }
         }
 
+        protected Task<bool> WaitCondition(Func<bool> condition, UInt32 timeout)
+        {
+            return WaitCondition(this, condition, timeout);
+        }
         protected Task<bool> __WriteProperty(int index, bool value)
         {
             return WriteBoolProperty(this, index, value);
@@ -361,6 +401,16 @@ namespace ENSACO.RxPlatform.Runtime
         }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         virtual internal byte RxType { get { return 0; } }
+        static async Task<bool> WaitCondition(RxPlatformRuntimeBase whose, Func<bool> condition, UInt32 timeout)
+        {
+            if (__runtimeFunctions.WaitCondition != null && whose.__nativeObjectPtr != IntPtr.Zero)
+            {
+                return await __runtimeFunctions.WaitCondition(whose, condition, timeout);
+            }
+            // Placeholder for property write logic
+            await Task.CompletedTask;
+            return false;
+        }
         static async Task<bool> WriteBoolProperty(RxPlatformRuntimeBase whose, int index, bool value)
         {
             if (__runtimeFunctions.WriteBoolRuntime != null && whose.__nativeObjectPtr != IntPtr.Zero)
@@ -521,6 +571,49 @@ namespace ENSACO.RxPlatform.Runtime
             await Task.CompletedTask;
             return false;
         }
+
+        internal static void WriteLogInfo(string source, string message, ushort severity)
+        {
+            if (__runtimeFunctions.WriteLogInfo != null)
+            {
+                __runtimeFunctions.WriteLogInfo(source, severity, message);
+            }
+        }
+        internal static void WriteLogError(string source, string message, ushort severity)
+        {
+            if (__runtimeFunctions.WriteLogError != null)
+            {
+                __runtimeFunctions.WriteLogError(source, severity, message);
+            }
+        }
+        internal static void WriteLogWarning(string source, string message, ushort severity)
+        {
+            if (__runtimeFunctions.WriteLogWarning != null)
+            {
+                __runtimeFunctions.WriteLogWarning(source, severity, message);
+            }
+        }
+        internal static void WriteLogDebug(string source, string message, ushort severity)
+        {
+            if (__runtimeFunctions.WriteLogDebug != null)
+            {
+                __runtimeFunctions.WriteLogDebug(source, severity, message);
+            }
+        }
+        internal static void WriteLogTrace(string source, string message, ushort severity)
+        {
+            if (__runtimeFunctions.WriteLogTrace != null)
+            {
+                __runtimeFunctions.WriteLogTrace(source, severity, message);
+            }
+        }
+        internal static void WriteLogCritical(string source, string message, ushort severity)
+        {
+            if (__runtimeFunctions.WriteLogCritical != null)
+            {
+                __runtimeFunctions.WriteLogCritical(source, severity, message);
+            }
+        }
     }
     public class RxPlatformObjectRuntime : RxPlatformRuntimeBase, IDisposable, IAsyncDisposable
     {
@@ -645,8 +738,34 @@ namespace ENSACO.RxPlatform.Runtime
             return instance;
         }
 
-        
-        public async virtual Task<string> __rxExecuteMethod(string method, string args)
+        static public async Task<T?> MonitorInstance<T>(object prototype, string name, string path = "", RxNodeId id = new RxNodeId()) where T : RxPlatformObjectRuntime, new()
+        {
+            T? instance = null;
+            if (__runtimeFunctions.MonitorRuntimes != null)
+            {
+                if (string.IsNullOrEmpty(name) && id.IsNull())
+                {
+                    throw new Exception("RxPlatformObjectRuntime: either name or id must be provided!");
+                }
+                instance = await __runtimeFunctions.MonitorRuntimes(typeof(T),  5/*rx_object*/, prototype, name, path, id) as T;
+                if (instance != null)
+                {
+                    instance.name = name;
+                    if (instance.__initSource != null)
+                    {
+                        await instance.__initSource.Task;
+                    }
+                }
+            }
+            return instance;
+        }
+
+
+        protected Task<string> __ExecuteProperty(int index, object? value)
+        {
+            return ExecuteObjectProperty(this, index, value);
+        }
+        public virtual Task<string> __rxExecuteMethod(string method, string args)
         {
             throw new NotImplementedException("Execute method not overridden");
         }
@@ -657,6 +776,18 @@ namespace ENSACO.RxPlatform.Runtime
                 return __runtimeFunctions.GetInstance(instancePtr);
             }
             return null;
+        }
+
+
+        static async Task<string> ExecuteObjectProperty(RxPlatformRuntimeBase whose, int index, object? value)
+        {
+            if (__runtimeFunctions.ExecuteObjectRuntime != null && whose.__nativeObjectPtr != IntPtr.Zero)
+            {
+                return await __runtimeFunctions.ExecuteObjectRuntime(whose.RxType, whose.__nativeObjectPtr, index, value);
+            }
+            // Placeholder for property write logic
+            await Task.CompletedTask;
+            return string.Empty;
         }
     }
 

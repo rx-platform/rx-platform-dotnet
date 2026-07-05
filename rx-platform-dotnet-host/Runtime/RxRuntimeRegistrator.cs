@@ -308,7 +308,59 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
             return null;
         }
+
+        internal static async Task<RxPlatformObjectRuntime?> MonitorRuntime(Type monitorType, byte type, object prototype, string name, string path, RxNodeId id)
+        {
+            return null;
+            // we have to have an id that is valid
+            //if (id.IsNull())
+            //{
+            //    id = new RxNodeId(Guid.NewGuid(), 999);
+            //}
+            //var result = await CreateRuntime(prototype, name, path, id, prototype.GetType().Assembly);
+            //if (result)
+            //{
+            //    RxPlatformObjectRuntime? managedObj = null;
+            //    TaskCompletionSource? initCompleted = null;
+            //    lock (RxMetaData.Instance.TypesLock)
+            //    {
+            //        if (RxMetaData.Instance.ObjectRuntimes.NodeIdDict.TryGetValue(id, out var rtData)
+            //            && rtData.objectRuntime.IsAllocated)
+            //        {
+            //            managedObj = rtData.objectRuntime.Target as RxPlatformObjectRuntime;
+            //            if (managedObj != null)
+            //            {
+            //                initCompleted = rtData.initCompleted;
+            //            }
+            //        }
+            //    }
+            //    if (initCompleted != null && initCompleted.Task != null)
+            //    {
+            //        await initCompleted.Task;
+            //    }
+            //    return managedObj;
+            //}
+            //return null;
+        }
         internal static async Task UnregisterRuntime(byte typeId, Type type, RxPlatformObjectRuntime instance, string name, string path, RxNodeId id)
+        {
+            if (PlatformHostMain.api.DeleteRuntime != null)
+            {
+                Exception? result = await PlatformHostMain.api.DeleteRuntime((rx_item_type)typeId, "", instance.NodeId);
+                if (result == null)
+                {
+                    RxPlatformObject.Instance.WriteLogDebug("PlatformRuntimeTypes.UnregisterRuntimes", 100
+                        , $"Deleted Runtime object with id {instance.NodeId} at path {instance.Path}.");
+                }
+                else
+                {
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.UnregisterRuntimes", 110
+                        , $"Failed to delete Runtime object with id {instance.NodeId} at path {instance.Path}:{result.Message}");
+                }
+            }
+        }
+
+        internal static async Task UnmonitorRuntime(byte typeId, Type type, RxPlatformObjectRuntime instance, string name, string path, RxNodeId id)
         {
             if (PlatformHostMain.api.DeleteRuntime != null)
             {
@@ -877,6 +929,41 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     }
                                 }
                                 RxMetaData.Instance.EventRuntimes.NativeDict.Remove(nativePtr);
+                            }
+                        }
+                        if (success)
+                        {
+                            RxPlatformObject.Instance.WriteLogDebug("PlatformRuntimeTypes.BindObject", 90
+                                    , $"Removed managed object type for native object pointer 0x{nativePtr.ToString("X")}.");
+
+                        }
+                        else
+                        {
+                            RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.BindObject", 110
+                                , $"Failed to unbind native object pointer 0x{nativePtr.ToString("X")} unable to find managed object with pointer.");
+                        }
+                    }
+                    break;
+
+
+                case rx_item_type.rx_struct_type:
+                    {
+                        bool success = false;
+                        lock (RxMetaData.Instance.TypesLock)
+                        {
+                            if (RxMetaData.Instance.StructRuntimes.NativeDict.TryGetValue(nativePtr, out var rtData))
+                            {
+                                success = true;
+                                if (rtData.objectRuntime.IsAllocated)
+                                {
+                                    RxPlatformStructRuntime? managedObj = rtData.objectRuntime.Target as RxPlatformStructRuntime;
+                                    if (managedObj != null)
+                                    {
+                                        managedObj.__BindObject(IntPtr.Zero, RxNodeId.NullId, "");
+                                        CallStoppdMethods(ref rtData);
+                                    }
+                                }
+                                RxMetaData.Instance.StructRuntimes.NativeDict.Remove(nativePtr);
                             }
                         }
                         if (success)

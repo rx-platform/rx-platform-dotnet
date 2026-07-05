@@ -488,6 +488,39 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             return true;
         }
 
+        internal static async Task<string> ExecuteObjectProperty(byte type, nint whose, int index, object? value)
+        {
+            if (PlatformHostMain.api.ExecuteValue == null)
+            {
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.LibraryWrite", 100
+                , $"Execute object function is not available. Cannot execute object at index {index}.");
+                return "";
+            }
+            var task = HostThreadingSynchronizator.AppendExecuteResponse();
+            typed_value_type rxVal = new typed_value_type();
+            ValuesConvertor.ConvertToRxValue(value, out rxVal);
+            PlatformHostMain.api.ExecuteValue((rx_item_type)type, task.TransId, whose, (UIntPtr)index, rxVal, task.CallbackPtr);
+            var result = await task.Task;
+            if (result != null)
+            {
+                if (result.Exception != null)
+                {
+                    RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.LibraryExecute", 200
+                            , $"Error executing runtime Object with ptr 0x{whose.ToString("X")}, at index {index}: {result.Exception.Message}");
+                    throw result.Exception;
+                }
+                else
+                {
+                    return result.Value;
+                }
+            }
+            else
+            {
+                RxPlatformObject.Instance.WriteLogError("PlatformRuntimeTypes.LibraryExecute", 200
+                            , $"Unknown error executing runtime Object with ptr 0x{whose.ToString("X")}, at index {index}.");
+                throw new Exception("Unknown error executing runtime object.");
+            }
+        }
 
         // called by native runtimes to notify value changes, execute functions...
         internal unsafe static void RuntimeValueChanged(rx_item_type type, nuint idx, typed_value_type value, nint whose)

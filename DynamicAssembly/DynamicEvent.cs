@@ -1,4 +1,6 @@
-﻿using ENSACO.RxPlatform.Attributes;
+﻿using ENSACO.RxPlatform;
+using ENSACO.RxPlatform.Attributes;
+using ENSACO.RxPlatform.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,13 +25,13 @@ namespace DynamicAssembly
 
         public void Started()
         {
-            Console.WriteLine($"DynamicEvent: Started method called.ObjectProp2 = {ObjectProp2}");
+            RxPlatformLog.WriteLogTrace("test", $"DynamicEvent: Started method called.ObjectProp2 = {ObjectProp2}");
             OnObjectProp2Change += DynamicEvent_OnObjectProp2Change;
         }
 
         private void DynamicEvent_OnObjectProp2Change(string? obj)
         {
-            Console.WriteLine($"DynamicEvent: Changed method called.OnObjectProp2Change = {ObjectProp2}");
+            RxPlatformLog.WriteLogTrace("test", $"DynamicEvent: Changed method called.OnObjectProp2Change = {ObjectProp2}");
 
             if (Fire != null)
             {
@@ -47,7 +49,7 @@ namespace DynamicAssembly
 
         public void Stopping()
         {
-            Console.WriteLine("DynamicEvent: Stopping method called.");
+            RxPlatformLog.WriteLogTrace("test", "DynamicEvent: Stopping method called.");
         }
     }
 }

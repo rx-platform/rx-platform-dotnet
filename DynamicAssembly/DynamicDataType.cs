@@ -68,7 +68,7 @@ namespace DynamicAssembly
     [RxPlatformDataType(nodeId: "ECD374A6-CE5A-4DD7-BD9D-DE7A3D6A81B1", directory: "testing555")]
     public class DynamicDataType : DynamicBaseDataType
     {
-        public DateTime? TimeProp { get; set; } = DateTime.Now;
+        public DateTime TimeProp { get; init; } = DateTime.Now;
         public uint? PeriodMsCvejo { get; set; } = 1000;
         public string? PeriodString { get; set; } = "uros je ovde";
         public bool? ZeljkoProp44 { get; set; } = true;
@@ -79,7 +79,6 @@ namespace DynamicAssembly
             SubStringString = "subzikica"
         };
 
-        public new DerivedDynamicSubDataType[] SubDataArray { get; set; } = [];
         public List<DynamicSubDataType> SubDataList { get; set; } = new List<DynamicSubDataType>
         {
             new DynamicSubDataType

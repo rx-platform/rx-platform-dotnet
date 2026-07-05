@@ -12,7 +12,6 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace ENSACO.RxPlatform.Hosting.Reflection
 {
-
     internal static class ReflectionHelpers
     {
         internal static Type[] GetBaseRuntimeTypes(Type type)
@@ -58,7 +57,39 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                 else
                 {
                     JsonSerializerOptions options = new JsonSerializerOptions
-                    {                        
+                    {
+                        Converters = {
+                            new IgnoreObjectForBoolConverter(),
+                            new IgnoreObjectForByteConverter(),
+                            new IgnoreObjectForSByteConverter(),
+                            new IgnoreObjectForShortConverter(),
+                            new IgnoreObjectForUShortConverter(),
+                            new IgnoreObjectForIntConverter(),
+                            new IgnoreObjectForUIntConverter(),
+                            new IgnoreObjectForLongConverter(),
+                            new IgnoreObjectForULongConverter(),
+                            new IgnoreObjectForDoubleConverter(),
+                            new IgnoreObjectForFloatConverter(),
+                            new IgnoreObjectForGuidConverter(),
+                            new IgnoreObjectForDecimalConverter(),
+                            new IgnoreObjectForDateTimeConverter(),
+                            new IgnoreObjectForStringConverter(),
+                            new IgnoreObjectForBoolArrayConverter(),
+                            new IgnoreObjectForByteArrayConverter(),
+                            new IgnoreObjectForSByteArrayConverter(),
+                            new IgnoreObjectForShortArrayConverter(),
+                            new IgnoreObjectForUShortArrayConverter(),
+                            new IgnoreObjectForIntArrayConverter(),
+                            new IgnoreObjectForUIntArrayConverter(),
+                            new IgnoreObjectForLongArrayConverter(),
+                            new IgnoreObjectForULongArrayConverter(),
+                            new IgnoreObjectForDoubleArrayConverter(),
+                            new IgnoreObjectForFloatArrayConverter(),
+                            new IgnoreObjectForGuidArrayConverter(),
+                            new IgnoreObjectForDecimalArrayConverter(),
+                            new IgnoreObjectForDateTimeArrayConverter(),
+                            new IgnoreObjectForStringArrayConverter(),
+                        },
                         UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip,
                         TypeInfoResolver = new DefaultJsonTypeInfoResolver
                         {
@@ -66,7 +97,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                                 foreach (var property in typeInfo.Properties) {
                                     // Logic to check type and ignore if necessary
                                     if (IsElemntToSkip(property))
-                                    { 
+                                    {
                                         property.Set = null; // Effectively ignores during deserialization
                                     }
                                 }
@@ -995,9 +1026,10 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             }
             return typeName;
         }
-        static internal string? EventType(Type type, PropertyInfo prop)
+        static internal string? EventType(Type type, PropertyInfo prop, string? eventName)
         {
-            var eventName = $"On{prop.Name}Change";
+            if(eventName==null)
+                eventName = $"On{prop.Name}Change";
             var eventInfo = type.GetEvent(eventName);
             if (eventInfo != null && eventInfo.EventHandlerType != null)
             {
@@ -1037,6 +1069,63 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                     if (parameters.Length == 1)
                     {
                         if (parameters[0].ParameterType == prop.PropertyType)
+                        {
+                            return typeName;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        static internal string? EventTypeType(Type type, PropertyInfo prop, string? eventName)
+        {
+            if (eventName == null)
+            {
+                return null;
+            }
+            var eventInfo = type.GetEvent(eventName);
+            if (eventInfo != null && eventInfo.EventHandlerType != null)
+            {
+                string? typeName = eventInfo.EventHandlerType.FullName;
+                if (eventInfo.EventHandlerType.IsGenericType)
+                {
+                    Type[] genericArguments = eventInfo.EventHandlerType.GetGenericArguments();
+                    if (genericArguments.Length == 2
+                        && genericArguments[0] == typeof(string)
+                        && genericArguments[1] == prop.PropertyType
+                        && eventInfo.EventHandlerType.FullName != null)
+                    {
+                        string? arg = genericArguments[1].FullName;
+                        Type? nulTpe = GetNullableType(prop);
+                        if (nulTpe != null)
+                        {
+                            arg = nulTpe.FullName;
+                        }
+                        var idx = eventInfo.EventHandlerType.FullName.IndexOf('`');
+                        if (idx != -1)
+                        {
+                            typeName = $"{eventInfo.EventHandlerType.FullName.Substring(0, idx)}<string, {arg}?>";
+                        }
+                        else
+                        {
+                            return null;
+                        }
+                    }
+                }
+                var addMethod = eventInfo.GetAddMethod();
+                if (addMethod == null || !addMethod.IsPublic || !addMethod.IsVirtual || addMethod.IsFinal)
+                {
+                    return null;
+                }
+                var method = eventInfo.EventHandlerType.GetMethod("Invoke");
+                if (method != null && method.ReturnType == typeof(void))
+                {
+                    var parameters = method.GetParameters();
+                    if (parameters.Length == 2)
+                    {
+                        if(parameters[0].ParameterType == typeof(string) 
+                            && parameters[1].ParameterType == prop.PropertyType)
                         {
                             return typeName;
                         }
@@ -1318,7 +1407,7 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             }
             return false;
         }
-        internal static MethodInfo[] GetDefinedMethods(Type type)
+        internal static MethodInfo[] GetDefinedMethods(Type type, bool own)
         {
             List<MethodInfo> ret = new List<MethodInfo>();
             var methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
@@ -1337,10 +1426,18 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                 {
                     continue;
                 }
-                if (method.GetCustomAttribute<RxPlatformMethodType>() != null)
+                bool hasPlatformMethodAttr = method.GetCustomAttribute<RxPlatformMethodType>() != null;
+                if (own)
                 {
-                    continue;
+                    if(hasPlatformMethodAttr)
+                        continue;
                 }
+                else 
+                {
+                    if (!hasPlatformMethodAttr || !method.IsVirtual)
+                        continue;
+                }
+                
                 Type? paramType = null;
                 Type? returnType = null;
                 var parmsInfo = method.GetParameters();

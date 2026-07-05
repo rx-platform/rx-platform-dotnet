@@ -202,10 +202,10 @@ namespace ENSACO.RxPlatform.Hosting.Common
                                         typed_value_type temp_val = new typed_value_type();
                                         if (CommonInterface.rx_get_array_value(i, ref temp_val, ref val) > 0)
                                         {
-                                            string str = string.Empty;
+                                            string? str = string.Empty;
                                             if (ConvertValueFromRxString(ref temp_val, ref str))
                                             {
-                                                ((string[])retVal)[i] = str;
+                                                ((string[])retVal)[i] = str ?? "";
                                             }
                                         }
                                     }
@@ -781,6 +781,390 @@ namespace ENSACO.RxPlatform.Hosting.Common
             }
             return false;
         }
+        /// <summary>
+        /// ////////////////////////////////////////
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="val"></param>
+        /// <returns></returns>
+        /// 
+
+        unsafe internal static bool ConvertToRxValue(string[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_string_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(char*));
+                char** pbuff = (char**)buff;
+                for(int i = 0; i<value.Length; i++)
+                {
+                    (*pbuff) = (char*)Marshal.StringToCoTaskMemUTF8(value[i]);
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_string_array_value(ref val, buff, (ulong)value.Length);
+
+                pbuff = (char**)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    Marshal.ZeroFreeCoTaskMemUTF8((nint)(*pbuff));
+                    pbuff++;
+                }
+                Marshal.FreeCoTaskMem(buff);
+                if(ret > 0)
+                {
+                    return true;
+                }
+
+            }
+            return false;
+
+        }
+        unsafe internal static bool ConvertToRxValue(double[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_double_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(double));
+                double* pbuff = (double*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i];
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_double_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        unsafe internal static bool ConvertToRxValue(float[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_float_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(float));
+                float* pbuff = (float*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i];
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_float_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        unsafe internal static bool ConvertToRxValue(ulong[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_uint64_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(ulong));
+                ulong* pbuff = (ulong*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i];
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_uint64_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        unsafe internal static bool ConvertToRxValue(uint[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_uint32_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(uint));
+                uint* pbuff = (uint*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i];
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_uint32_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+
+        }
+        unsafe internal static bool ConvertToRxValue(ushort[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_uint16_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(ushort));
+                ushort* pbuff = (ushort*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i];
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_uint16_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+
+        }
+        unsafe internal static bool ConvertToRxValue(byte[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_uint8_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(byte));
+                byte* pbuff = (byte*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i];
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_uint8_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+
+        }
+        unsafe internal static bool ConvertToRxValue(bool[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_bool_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(int));
+                int* pbuff = (int*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i] ? 1 : 0;
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_bool_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+
+        }
+
+        unsafe internal static bool ConvertToRxValue(long[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_int64_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(long));
+                long* pbuff = (long*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i];
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_int64_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        unsafe internal static bool ConvertToRxValue(int[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_int32_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(uint));
+                int* pbuff = (int*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i];
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_int32_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+
+        }
+        unsafe internal static bool ConvertToRxValue(short[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_int16_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(short));
+                short* pbuff = (short*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i];
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_int16_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+
+        }
+        unsafe internal static bool ConvertToRxValue(sbyte[] value, ref typed_value_type val)
+        {
+            if (value.Length == 0)
+            {
+                if (CommonInterface.rx_init_int8_array_value(ref val, 0, 0) > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                var buff = Marshal.AllocCoTaskMem(value.Length * sizeof(sbyte));
+                sbyte* pbuff = (sbyte*)buff;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    (*pbuff) = value[i];
+                    pbuff++;
+                }
+                var ret = CommonInterface.rx_init_int8_array_value(ref val, buff, (ulong)value.Length);
+                Marshal.FreeCoTaskMem(buff);
+                if (ret > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        unsafe internal static bool ConvertToRxValue(DateTime[] value, ref typed_value_type val)
+        {
+            return false;
+            //var ft = value.ToFileTimeUtc();
+            //rx_time_struct timeStruct = new rx_time_struct();
+            //timeStruct.t_value = (ulong)ft;
+            //if (CommonInterface.rx_init_time_value(ref val, timeStruct) > 0)
+            //{
+            //    return true;
+            //}
+            //return false;
+        }
+        unsafe internal static bool ConvertToRxValue(Guid[] value, ref typed_value_type val)
+        {
+            return false;
+            //var array = value.ToByteArray();
+            //unsafe
+            //{
+            //    rx_uuid_t* uuidStruct = (rx_uuid_t*)Marshal.AllocHGlobal(sizeof(rx_uuid_t));
+            //    for (int i = 0; i < 16; i++)
+            //    {
+            //        uuidStruct->bytes[i] = array[i];
+            //    }
+
+            //    if (CommonInterface.rx_init_uuid_value(ref val, ref *uuidStruct) > 0)
+            //    {
+            //        Marshal.FreeHGlobal((IntPtr)uuidStruct);
+            //        return true;
+            //    }
+            //}
+            //return false;
+        }
+        /////////////////////////////////////////////////////
+        ///
+        ///
 
         internal static bool ConvertToRxValue(object? value, out typed_value_type val)
         {
@@ -846,7 +1230,64 @@ namespace ENSACO.RxPlatform.Hosting.Common
             {
                 return ConvertToRxValue(dt, ref val);
             }
-            else if(value.GetType().GetCustomAttribute<RxPlatformDataType>()!=null)
+            else
+            if (value is double[] da)
+            {
+                return ConvertToRxValue(da, ref val);
+            }
+            else if (value is float[] fa)
+            {
+                return ConvertToRxValue(fa, ref val);
+            }
+            else if (value is ulong[] ula)
+            {
+                return ConvertToRxValue(ula, ref val);
+            }
+            else if (value is uint[] uia)
+            {
+                return ConvertToRxValue(uia, ref val);
+            }
+            else if (value is ushort[] usa)
+            {
+                return ConvertToRxValue(usa, ref val);
+            }
+            else if (value is byte[] ba)
+            {
+                return ConvertToRxValue(ba, ref val);
+            }
+            else if (value is long[] la)
+            {
+                return ConvertToRxValue(la, ref val);
+            }
+            else if (value is int[] ia)
+            {
+                return ConvertToRxValue(ia, ref val);
+            }
+            else if (value is short[] sa)
+            {
+                return ConvertToRxValue(sa, ref val);
+            }
+            else if (value is sbyte[] sba)
+            {
+                return ConvertToRxValue(sba, ref val);
+            }
+            else if (value is bool[] boa)
+            {
+                return ConvertToRxValue(boa, ref val);
+            }
+            else if (value is string[] stra)
+            {
+                return ConvertToRxValue(stra, ref val);
+            }
+            else if (value is Guid[] uuida)
+            {
+                return ConvertToRxValue(uuida, ref val);
+            }
+            else if (value is DateTime[] dta)
+            {
+                return ConvertToRxValue(dta, ref val);
+            }
+            else if (value.GetType().GetCustomAttribute<RxPlatformDataType>() != null)
             {
                 string jsonVal = JsonSerializer.Serialize(value, value.GetType(), PlatformHostMain.JsonContext);
                 return ConvertToRxValue(jsonVal, ref val);

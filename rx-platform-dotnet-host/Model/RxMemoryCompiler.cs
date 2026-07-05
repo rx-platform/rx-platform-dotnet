@@ -1,8 +1,10 @@
 ﻿using ENSACO.RxPlatform.Attributes;
 using ENSACO.RxPlatform.Hosting.Common;
 using ENSACO.RxPlatform.Hosting.Model.Code;
+using System;
 using System.Collections;
 using System.Globalization;
+using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
@@ -71,6 +73,10 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 {
                     return value != null ? $"Guid.Parse(\"{value.ToString()}\")" : "null";
                 }
+                if (type == typeof(DateTime))
+                {
+                    return value != null ? $"DateTime.Parse(\"{value.ToString()}\")" : "null";
+                }
                 else
                 {
                     return string.Format(CultureInfo.InvariantCulture, "{0}", value);
@@ -99,7 +105,7 @@ public class {typeName} : {typeNamespace}.{typeName}
         }
         static void GenerateTypeStructsCode(RxStructCodeData[] structs, StringBuilder stream)
         {
-            if (structs.Length == 0)
+            if (structs == null || structs.Length == 0)
                 return;
 
             int index = 0;
@@ -123,16 +129,19 @@ public class {typeName} : {typeNamespace}.{typeName}
                 index++;
             }
         }
-        static void GenerateTypePropertiesCode(RxPropertyCodeData[] properties, RxOwnRelationCodeData[] relations, StringBuilder stream)
+        static void GenerateTypePropertiesCode(RxPropertyCodeData[] properties, RxOwnRelationCodeData[] relations, StringBuilder stream, out int index)
         {
+            index = 0;
             if (properties.Length == 0 && (relations == null || relations.Length == 0))
                 return;
 
-            int index = 0;
             foreach (var prop in properties)
             {
                 if (prop.codeType == null)
                     continue;
+
+            //    System.Diagnostics.Debug.Assert(prop.name != "Priority");
+
                 string propFullType = prop.isNullAble ? prop.codeType + "?" : prop.codeType;
                 string? eventDelName = prop.eventName;
                 if (eventDelName != null)
@@ -204,17 +213,51 @@ public class {typeName} : {typeNamespace}.{typeName}
             }
             if (relations != null && relations.Length > 0)
             {
+                HashSet<string> generatedTypeConnectedEvents = new HashSet<string>();
+                HashSet<string> generatedTypeDisconnectedEvents = new HashSet<string>();
                 foreach (var prop in relations)
                 {
                     if (prop.codeType == null)
                         continue;
+                    string simpleTypeName = prop.codeType.Contains(".") ? prop.codeType.Substring(prop.codeType.LastIndexOf(".") + 1) : prop.codeType;
                     string propFullType = prop.isNullAble ? prop.codeType + "?" : prop.codeType;
                     string? eventDelName = prop.eventName;
+                    string? connectedEventDelName = prop.connectedEventName;
+                    string? disconnectedEventDelName = prop.disconnectedEventName;
+                    string? typeConnectedEventDelName = prop.typeConnectedEventName;
+                    string? typeDisconnectedEventDelName = prop.typeDisconnectedEventName;
                     if (eventDelName != null)
                     {
                         stream.Append($@"
      public override event {eventDelName}? On{prop.name}Change;
 ");
+                    }
+                    if (connectedEventDelName != null)
+                    {
+                        stream.Append($@"
+     public override event {connectedEventDelName}? On{prop.name}Connected;
+");
+                    }
+                    if (disconnectedEventDelName != null)
+                    {
+                        stream.Append($@"
+     public override event {disconnectedEventDelName}? On{prop.name}Disconnected;
+");
+                    }
+
+                    if (typeConnectedEventDelName != null && !generatedTypeConnectedEvents.Contains(simpleTypeName))
+                    {
+                        stream.Append($@"
+     public override event {typeConnectedEventDelName}? On{simpleTypeName}Connected;
+");
+                        generatedTypeConnectedEvents.Add(simpleTypeName);
+                    }
+                    if (typeDisconnectedEventDelName != null && !generatedTypeDisconnectedEvents.Contains(simpleTypeName))
+                    {
+                        stream.Append($@"
+     public override event {typeDisconnectedEventDelName}? On{simpleTypeName}Disconnected;
+");
+                        generatedTypeDisconnectedEvents.Add(simpleTypeName);
                     }
                     stream.Append($@"
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -340,21 +383,73 @@ public class {typeName} : {typeNamespace}.{typeName}
                 {
                     if (prop.codeType == null)
                         continue;
-
+                    string simpleTypeName = prop.codeType.Contains(".") ? prop.codeType.Substring(prop.codeType.LastIndexOf(".") + 1) : prop.codeType;
                     string propFullType = prop.isNullAble ? prop.codeType + "?" : prop.codeType;
                     string eventStr = "";
+                    string eventBeforeStr = "";
                     if (prop.eventName != null)
                     {
                         eventStr = $@"
                     On{prop.name}Change?.Invoke(myValue);
 ";
                     }
+                    if (prop.connectedEventName != null)
+                    {
+                        eventStr += $@"
+                        if(connectValue != null)
+                        {{
+                            On{prop.name}Connected?.Invoke(connectValue);
+                        }}
+";
+                    }
+                    if (prop.disconnectedEventName != null)
+                    {
+                        eventBeforeStr += $@"
+                        if(disconnectValue != null)
+                        {{
+                            On{prop.name}Disconnected?.Invoke(disconnectValue);
+                        }}
+";
+                    }
+                    if (prop.typeConnectedEventName != null)
+                    {
+                        eventStr += $@"
+                        if(connectValue != null)
+                        {{
+                            On{simpleTypeName}Connected?.Invoke(""{prop.name}"", connectValue);
+                        }}
+";
+                    }
+                    if (prop.typeDisconnectedEventName != null)
+                    {
+                        eventBeforeStr += $@"
+                        if(disconnectValue != null)
+                        {{
+                            On{simpleTypeName}Disconnected?.Invoke(""{prop.name}"", disconnectValue);
+                        }}
+";
+                    }
                     stream.Append($@"
             case {index}:
                 {{
+                    {propFullType} disconnectValue = null;
+                    {propFullType} connectValue = null;
                     {propFullType} myValue = null;
-                    lock({prop.name}____rxLock)
+");
+                    if(eventBeforeStr != "")
+                    {
+                        stream.Append($@"
+                    lock ({prop.name}____rxLock)
                     {{
+                        disconnectValue = {prop.name}____rxImplementation;
+                    }} 
+");
+                        stream.Append(eventBeforeStr);
+                    }
+                    stream.Append($@"
+                    lock ({prop.name}____rxLock)
+                    {{
+                        disconnectValue = {prop.name}____rxImplementation;
                         try
                         {{
                             if(value == null)
@@ -370,7 +465,8 @@ public class {typeName} : {typeNamespace}.{typeName}
                                 }}
                                 else
                                 {{
-                                    myValue = __GetInstance((nint)val) as {prop.codeType};                            
+                                    myValue = __GetInstance((nint)val) as {prop.codeType};   
+                                    connectValue = myValue;
                                     {prop.name}____rxImplementation = myValue;   
                                 }}
                             }}
@@ -379,6 +475,7 @@ public class {typeName} : {typeNamespace}.{typeName}
                         {{
                             {prop.name}____rxImplementation = null;
                             myValue = null;
+                            connectValue = null;
                         }}
                      }}
                     {eventStr}
@@ -593,8 +690,9 @@ public class {typeName} : {typeNamespace}.{typeName}
             if (type.codeNamespace == null)
                 return;
 
+            int index = 0;
             GenerateTypeHeader(typeName, type.codeNamespace, stream);
-            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream);
+            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream, out index);
             GenerateTypeStructsCode(type.definedStructs, stream);
 
             if (type.sourceWriteMethods != null)
@@ -633,8 +731,9 @@ public class {typeName} : {typeNamespace}.{typeName}
             if (type.codeNamespace == null)
                 return;
 
+            int index = 0;
             GenerateTypeHeader(typeName, type.codeNamespace, stream);
-            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream);
+            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream, out index);
             GenerateTypeStructsCode(type.definedStructs, stream);
 
             GenerateTypeFooter(stream);
@@ -646,8 +745,9 @@ public class {typeName} : {typeNamespace}.{typeName}
             if (type.codeNamespace == null)
                 return;
 
+            int index = 0;
             GenerateTypeHeader(typeName, type.codeNamespace, stream);
-            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream);
+            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream, out index);
             GenerateTypeStructsCode(type.definedStructs, stream);
 
             GenerateTypeFooter(stream);
@@ -673,7 +773,8 @@ public class {typeName} : {typeNamespace}.{typeName}
         }};
     }}
 ");
-            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream);
+            int index = 0;
+            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream, out index);
             GenerateTypeStructsCode(type.definedStructs, stream);
 
             GenerateTypeFooter(stream);
@@ -686,8 +787,9 @@ public class {typeName} : {typeNamespace}.{typeName}
             if (type.codeNamespace == null)
                 return;
 
+            int index = 0;
             GenerateTypeHeader(typeName, type.codeNamespace, stream);
-            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream);
+            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream, out index);
             GenerateTypeStructsCode(type.definedStructs, stream);
 
             GenerateTypeFooter(stream);
@@ -869,14 +971,90 @@ public class {typeName} : {typeNamespace}.{typeName}
                 }
             }
         }
+        static private void GenerateCallableMethodCode(RxCallableMethodCodeData method, int index, StringBuilder stream)
+        {
+            if (method.name == null)
+                return;
+
+
+            string resultPostfix = method.isStructResult ? ".Value" : "";
+
+            bool isVoid = method.resultType == typeof(Task).FullName;
+            if (string.IsNullOrEmpty(method.argumentType) && isVoid)
+            {
+                //////////////////////////////////////////////////////////////////////////
+                /// void, void method
+                //////////////////////////////////////////////////////////////////////////
+
+                stream.Append($@"
+    public override async {method.resultType} {method.name}()
+    {{
+            await __ExecuteProperty({index}, null);
+    }}
+");
+            }
+            else if (!string.IsNullOrEmpty(method.argumentType) && isVoid)
+            {
+                //////////////////////////////////////////////////////////////////////////
+                /// non-void, void method
+                //////////////////////////////////////////////////////////////////////////
+
+            }
+            else if (string.IsNullOrEmpty(method.argumentType) && !isVoid)
+            {
+                //////////////////////////////////////////////////////////////////////////
+                /// void, non-void method
+                //////////////////////////////////////////////////////////////////////////
+                stream.Append($@"
+    public override async Task<{method.resultType}> {method.name}()
+    {{
+            var jsonStr = await __ExecuteProperty({index}, null);
+            {method.resultType}? resultObj = JsonSerializer.Deserialize<{method.resultType}>(jsonStr, __jsonContext);
+            if(resultObj == null)
+            {{
+                throw new Exception($""Failed to deserialize result of method {method.name}"");
+            }}
+            return resultObj{resultPostfix};
+    }}
+");
+            }
+
+            else if (!string.IsNullOrEmpty(method.argumentType) && !isVoid)
+            {
+                //////////////////////////////////////////////////////////////////////////
+                /// non-void, non-void method
+                //////////////////////////////////////////////////////////////////////////
+                ///string structPostfix = method.isStructArgument ? ".Value" : "";
+                stream.Append($@"
+    public override async Task<{method.resultType}> {method.name}({method.argumentType} args)
+    {{
+            var inStr = JsonSerializer.Serialize(args, __jsonContext);
+            if(string.IsNullOrEmpty(inStr))
+            {{
+                inStr = ""{{ }}"";
+            }}
+            var jsonStr = await __ExecuteProperty({index}, inStr);  
+            {method.resultType}? resultObj = JsonSerializer.Deserialize<{method.resultType}>(jsonStr, __jsonContext);
+            if(resultObj == null)
+            {{
+                throw new Exception($""Failed to deserialize result of method {method.name}"");
+            }}
+            return resultObj{resultPostfix};
+    }}
+");
+
+            }
+
+        }
         internal static void GenerateObjectTypeSourceCode(PlatformTypeBuildMeta<RxPlatformObjectType> type, StringBuilder stream)
         {
             string typeName = type.name;
             if (type.codeNamespace == null)
                 return;
 
+            int index = 0;
             GenerateTypeHeader(typeName, type.codeNamespace, stream);
-            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream);
+            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream, out index);
             GenerateTypeStructsCode(type.definedStructs, stream);
 
             if (type.definedMethods.Length > 0)
@@ -911,7 +1089,44 @@ public class {typeName} : {typeNamespace}.{typeName}
     }}
 ");
             }
+
+            if (type.callableMethods.Length > 0)
+            {
+                foreach (var method in type.callableMethods)
+                {
+                    GenerateCallableMethodCode(method, index, stream);
+                    index++;
+                }
+            }
             GenerateTypeFooter(stream);
         }
+
+
+        internal static void GenerateMonitoredObjectTypeSourceCode(PlatformMonitoredTypeBuildMeta type, StringBuilder stream)
+        {
+            if(type.type == null)
+                return;
+
+            string typeName = type.type.Name;
+            if (type.codeNamespace == null)
+                return;
+
+            int index = 0;
+            GenerateTypeHeader(typeName, type.codeNamespace, stream);
+            GenerateTypePropertiesCode(type.definedProperties, type.definedRelations, stream, out index);
+            GenerateTypeStructsCode(type.definedStructs, stream);
+
+
+            if (type.callableMethods.Length > 0)
+            {
+                foreach (var method in type.callableMethods)
+                {
+                    GenerateCallableMethodCode(method, index, stream);
+                    index++;
+                }
+            }
+            GenerateTypeFooter(stream);
+        }
+
     }
 }
