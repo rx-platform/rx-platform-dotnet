@@ -28,22 +28,30 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     if (propTypeName == null)
                         propTypeName = prop.Name;
                     Type? propType = ReflectionHelpers.GetNullableType(prop);
+
                     if (propType != null)
                     {
                         nullable = true;
-                        propTypeName = propType.FullName;
-                        if (propTypeName == null)
-                            propTypeName = prop.Name;
+                    }
+                    else
+                    {
+                        propType = prop.PropertyType;
+                    }
+                    propTypeName = propType.FullName;
+                    if (propTypeName == null)
+                        propTypeName = prop.Name;
 
-                        int array = -1;
-                        Type? enumType = ReflectionHelpers.GetEnumerableElement(prop.PropertyType);
-                        if (enumType != null)
-                        {
-                            propType = enumType;
-                            array = 0;
-                        }
-                        bool hasPrivateSetter = false;
-                        bool initOnly = false;
+                    int array = -1;
+                    Type? enumType = ReflectionHelpers.GetEnumerableElement(prop.PropertyType);
+                    if (enumType != null)
+                    {
+                        propType = enumType;
+                        array = 0;
+                    }
+                    bool hasPrivateSetter = false;
+                    bool initOnly = false;
+                    if (nullable)
+                    {
                         if (prop.SetMethod != null)
                         {
                             if (!prop.SetMethod.IsPublic)
@@ -53,33 +61,43 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                             var requiredModifiers = prop.SetMethod.ReturnParameter.GetRequiredCustomModifiers();
                             initOnly = requiredModifiers.Contains(typeof(System.Runtime.CompilerServices.IsExternalInit));
                         }
-                        string defaultValue = "default";
-                        defaultValue = RxMemoryCompiler.ValueToSourceCode(prop.GetValue(instance), propType, array);
-
-                        RxPropertyCodeData data = new RxPropertyCodeData()
-                        {
-                            name = prop.Name,
-                            isNullAble = nullable,
-                            codeType = propTypeName,
-                            defaultValue = defaultValue,
-                            itemId = prop.Name,
-                            eventName = ReflectionHelpers.EventType(type, prop, null),
-                            writeMethod = ReflectionHelpers.HasWriteMethod(type, prop),
-                            jsonValue = (null != prop.PropertyType.GetCustomAttribute<RxPlatformDataType>()),
-                            canWrite = prop.CanWrite && prop.SetMethod != null && !initOnly,
-                            setModifier = hasPrivateSetter ? "protected" : ""
-
-                        };
-                        if (connectionsBuilder.Length > 0)
-                            connectionsBuilder.Append(";");
-                        connectionsBuilder.Append(prop.Name);
-                        items.Add(data);
-                        hasCode = true;
                     }
                     else
                     {
-                        RxPlatformObject.Instance.WriteLogWarning("RxPropertiesGetter", 0, $"Property {prop.Name} of type {type.FullName} is virtual but not nullable, skipping value code generation for it.");
+                        if (prop.SetMethod != null)
+                        {
+                            var requiredModifiers = prop.SetMethod.ReturnParameter.GetRequiredCustomModifiers();
+                            initOnly = requiredModifiers.Contains(typeof(System.Runtime.CompilerServices.IsExternalInit));
+                            if (!initOnly)
+                            {
+                                RxPlatformObject.Instance.WriteLogWarning("RxPropertiesGetter", 0, $"Property {prop.Name} of type {type.FullName} is not null-able and has setter skipping code generation for it.");
+                                hasCode = false;
+                            }
+                        }
+
                     }
+                    string defaultValue = "default";
+                    defaultValue = RxMemoryCompiler.ValueToSourceCode(prop.GetValue(instance), propType, array);
+
+                    RxPropertyCodeData data = new RxPropertyCodeData()
+                    {
+                        name = prop.Name,
+                        isNullAble = nullable,
+                        codeType = propTypeName,
+                        defaultValue = defaultValue,
+                        itemId = prop.Name,
+                        eventName = nullable ? ReflectionHelpers.EventType(type, prop, null) : null,
+                        writeMethod = nullable ? ReflectionHelpers.HasWriteMethod(type, prop) : false,
+                        jsonValue = (null != prop.PropertyType.GetCustomAttribute<RxPlatformDataType>()),
+                        canWrite = prop.CanWrite && prop.SetMethod != null && !initOnly,
+                        setModifier = hasPrivateSetter ? "protected" : ""
+
+                    };
+                    if (connectionsBuilder.Length > 0)
+                        connectionsBuilder.Append(";");
+                    connectionsBuilder.Append(prop.Name);
+                    items.Add(data);
+                    hasCode = true;
                 }
                 if (!hasCode)
                 {

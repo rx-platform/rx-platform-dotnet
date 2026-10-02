@@ -1,0 +1,7 @@
+dotnet.version: "latest"
+dotnet.app_path: "bin\Debug\net10.0"
+storage.user: "rx-config"
+
+#in case you need to change http port
+# default is 31421
+http.port: 80

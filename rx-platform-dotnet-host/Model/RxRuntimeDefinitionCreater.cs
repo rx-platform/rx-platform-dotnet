@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 
 namespace ENSACO.RxPlatform.Hosting.Model
 {
@@ -171,55 +172,177 @@ namespace ENSACO.RxPlatform.Hosting.Model
             // no instance data for other types
             return false;
         }
+        private static void FilterAttributeProperties(JsonTypeInfo typeInfo)
+        {
+            if (typeof(Attribute).IsAssignableFrom(typeInfo.Type))
+            {
+                for (int i = typeInfo.Properties.Count - 1; i >= 0; i--)
+                {
+                    var property = typeInfo.Properties[i];
+
+                    // System.Reflection.MemberInfo holds the true DeclaringType
+                    if (property.AttributeProvider is System.Reflection.MemberInfo memberInfo)
+                    {
+                        if (memberInfo.DeclaringType == typeof(Attribute))
+                        {
+                            typeInfo.Properties.RemoveAt(i);
+                        }
+                    }
+                    // Fallback for fields or parameter-backed properties (like TypeId)
+                    else if (property.Name == "TypeId")
+                    {
+                        typeInfo.Properties.RemoveAt(i);
+                    }
+                }
+            }
+        }
+
+        static PropertyInfo[] GetAllRelationsPropertyInfos(Type type)
+        {
+            List<PropertyInfo> ret = new List<PropertyInfo>();
+            var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var prop in propertyInfos)
+            {
+                var ignoreAttr = prop.GetCustomAttribute<RxPlatformIgnoreAttribute>();
+                if (ignoreAttr != null)
+                {
+                    continue;
+                }
+                Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
+                if (propType == null)
+                {
+                    propType = prop.PropertyType;
+                }
+                var relAttr = prop.GetCustomAttribute<RxPlatformRelationAttribute>();
+                if (relAttr != null)
+                {
+                    if(propType!=typeof(string))
+                        ret.Add(prop);
+                    continue;
+                }
+                if (!ReflectionHelpers.IsVirtual(prop))
+                {
+                    continue;
+                }
+                if (propType != null && propType.IsSubclassOf(typeof(RxPlatformObjectRuntime)))
+                {
+                    ret.Add(prop);
+                    continue;
+                }
+            }
+            return ret.ToArray();
+        }
         internal static string CreateOverrides(object prototype, HostedPlatformLibrary hostLib)
         {
             string jsonString = JsonSerializer.Serialize(prototype, prototype.GetType(), PlatformHostMain.JsonContext);
 
-            var relationProperties = ReflectionHelpers.GetAllRelationsPropertyInfos(prototype.GetType());
-            if (relationProperties != null && relationProperties.Length > 0)
+
+            List<PropertyInfo> varProperties = new List<PropertyInfo>();
+            var simpleProperties = ReflectionHelpers.GetSimplePropertyInfos(prototype.GetType(), false);
+            if (simpleProperties != null && simpleProperties.Length > 0)
+            {
+                foreach (var prop in simpleProperties)
+                {
+                    if(prop.GetCustomAttributes<RxPlatformVariableSourceAttribute>().Any()
+                        || prop.GetCustomAttributes<RxPlatformVariableMapperAttribute>().Any()
+                        || prop.GetCustomAttributes<RxPlatformFilterAttribute>().Any())
+                    varProperties.Add(prop);
+                }
+            }
+            var relationProperties = GetAllRelationsPropertyInfos(prototype.GetType());
+            if ((relationProperties != null && relationProperties.Length > 0)
+                || varProperties.Count > 0)
             {
 
                 var document = JsonNode.Parse(jsonString) as JsonObject;
 
                 if (document != null)
                 {
-                    foreach (var prop in relationProperties)
+                    if (relationProperties != null)
                     {
-                        object? relInstance = prop.GetValue(prototype);
-                        document[prop.Name] = "";
-                        if (relInstance != null)
+                        foreach (var prop in relationProperties)
                         {
-                            PlatformInstanceData instanceData = new PlatformInstanceData();
-                            lock (RxMetaData.Instance.TypesLock)
+                            object? relInstance = prop.GetValue(prototype);
+                            document[prop.Name] = "";
+                            if (relInstance != null)
                             {
-                                RxMetaData.Instance.RegisteredObjects.TryGetValue(relInstance, out instanceData);
-                            }
-                            if (!instanceData.id.IsNull())
-                            {
-                                JsonNode? propNode = null;
-                                if (document.TryGetPropertyValue(prop.Name, out propNode))
+                                PlatformInstanceData instanceData = new PlatformInstanceData();
+                                lock (RxMetaData.Instance.TypesLock)
                                 {
-                                    JsonNode newNode = JsonValue.Create(instanceData.path);
-                                    document[prop.Name] = newNode;
+                                    RxMetaData.Instance.RegisteredObjects.TryGetValue(relInstance, out instanceData);
                                 }
-                            }
-                            else
-                            {
-                                RxPlatformObjectRuntime? runtimeObj = relInstance as RxPlatformObjectRuntime;
-                                if(runtimeObj != null)
+                                if (!instanceData.id.IsNull())
                                 {
-                                    var tempPath = runtimeObj.Path;
-                                    if (!string.IsNullOrEmpty(tempPath))
+                                    JsonNode? propNode = null;
+                                    if (document.TryGetPropertyValue(prop.Name, out propNode))
                                     {
-                                        JsonNode? propNode = null;
-                                        if (document.TryGetPropertyValue(prop.Name, out propNode))
+                                        JsonNode newNode = JsonValue.Create(instanceData.path);
+                                        document[prop.Name] = newNode;
+                                    }
+                                }
+                                else
+                                {
+                                    RxPlatformObjectRuntime? runtimeObj = relInstance as RxPlatformObjectRuntime;
+                                    if (runtimeObj != null)
+                                    {
+                                        var tempPath = runtimeObj.Path;
+                                        if (!string.IsNullOrEmpty(tempPath))
                                         {
-                                            JsonNode newNode = JsonValue.Create(tempPath);
-                                            document[prop.Name] = newNode;
+                                            JsonNode? propNode = null;
+                                            if (document.TryGetPropertyValue(prop.Name, out propNode))
+                                            {
+                                                JsonNode newNode = JsonValue.Create(tempPath);
+                                                document[prop.Name] = newNode;
+                                            }
                                         }
                                     }
                                 }
                             }
+                        }
+                    }
+                    if(varProperties.Count > 0)
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            TypeInfoResolver = new DefaultJsonTypeInfoResolver
+                            {
+                                Modifiers = { FilterAttributeProperties }
+                            },
+                            WriteIndented = true
+                        };
+
+                        foreach (var prop in varProperties)
+                        {
+                            JsonNode? defNode = null;
+                            if(document.TryGetPropertyValue(prop.Name, out defNode))
+                            {
+                                document.Remove(prop.Name);
+                            }   
+
+                            JsonObject varNode = new JsonObject();
+                            if (defNode != null)
+                            {
+                                varNode["_"] = defNode;
+                            }
+                            else
+                            {
+                                object? varVal = prop.GetValue(prototype);
+                                varNode["_"] = JsonValue.Create(varVal);
+                            }
+                            foreach(var one in prop.GetCustomAttributes<RxPlatformVariableSourceAttribute>())
+                            {
+                                varNode[one.Element] = JsonSerializer.SerializeToNode(one, options);
+                            }
+                            foreach (var one in prop.GetCustomAttributes<RxPlatformVariableMapperAttribute>())
+                            {
+                                varNode[one.Element] = JsonSerializer.SerializeToNode(one, options);
+                            }
+                            foreach (var one in prop.GetCustomAttributes<RxPlatformFilterAttribute>())
+                            {
+                                varNode[one.Element] = JsonSerializer.SerializeToNode(one, options);
+                            }
+
+                            document[prop.Name] = varNode;
                         }
                     }
                     MemoryStream memstm = new MemoryStream();
@@ -230,6 +353,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 }
 
             }
+
             return jsonString;
         }
         private void FillRuntimeDefinitions<T>(Dictionary<RxNodeId, PlatformTypeBuildMeta<T>> data) where T : RxPlatformTypeAttribute

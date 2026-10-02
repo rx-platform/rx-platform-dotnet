@@ -49,8 +49,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal bool definedType;
         internal bool runtimeType;
 
-        internal MethodInfo? startMethod;
-        internal MethodInfo? stopMethod;
+        internal MethodInfo[]? startMethods;
+        internal MethodInfo[]? stopMethods;
     }
 
 
@@ -84,8 +84,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal RxNodeId nodeId;
         internal GCHandle objectRuntime;
         internal IntPtr nativeRuntimePtr;
-        internal WeakDelegate<Action>? startedMethod;
-        internal WeakDelegate<Action>? stoppedMethod;
+        internal WeakDelegate<Action>?[]? startedMethods;
+        internal WeakDelegate<Action>?[]? stoppedMethods;
         internal Dictionary<string, Func<Task<HttpResponseMessage>, HttpRequestMessage>[]>? handleRequests;
         internal SourceWriteMethods sourceWriteMethods;
         internal TaskCompletionSource? initCompleted;
@@ -93,8 +93,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
     struct RuntimeConstructionData
     {
         internal Func<string?, object?>? constructor;
-        internal MethodInfo? startMethod;
-        internal MethodInfo? stopMethod;
+        internal MethodInfo[]? startMethods;
+        internal MethodInfo[]? stopMethods;
         internal byte[]? initialValues;
         internal MethodInfo[]? handleRequests;
         internal SourceWriteMethodData[]? sourceWriteMethods;
@@ -139,8 +139,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal bool definedType;
         internal bool runtimeType;
         internal Func<string?, object?>? runtimeConstructor;
-        internal MethodInfo? startMethod;
-        internal MethodInfo? stopMethod;
+        internal MethodInfo[]? startMethods;
+        internal MethodInfo[]? stopMethods;
         internal RxPropertyCodeData[] definedProperties;
         internal RxStructCodeData[] definedStructs;
         internal RxOwnMethodCodeData[] definedMethods;
@@ -157,6 +157,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal string? codeInfo;
         internal MethodInfo[]? requestHandlingMethods;
         internal SourceWriteMethodData[]? sourceWriteMethods;
+        internal JsonObject? VariableOverrideData;
+        internal JsonObject? MethodOverrideData;
     }
     struct PlatformDataTypeBuildMeta
     {
@@ -226,6 +228,10 @@ namespace ENSACO.RxPlatform.Hosting.Model
             = new Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformDisplayType>>();
 
 
+        internal Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformMethodType>> MethodTypes
+            = new Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformMethodType>>();
+
+
         internal Dictionary<RxNodeId, PlatformMonitoredTypeBuildMeta> MonitoredObjects
             = new Dictionary<RxNodeId, PlatformMonitoredTypeBuildMeta>();
         internal Dictionary<RxNodeId, PlatformMonitoredTypeBuildMeta> MonitoredStructs
@@ -234,6 +240,13 @@ namespace ENSACO.RxPlatform.Hosting.Model
 
         internal Dictionary<RxNodeId, PlatformDataTypeBuildMeta> DataTypes
             = new Dictionary<RxNodeId, PlatformDataTypeBuildMeta>();
+
+
+
+        internal Dictionary<string, RxNodeId> InstancedVariables
+            = new Dictionary<string, RxNodeId>();
+        internal Dictionary<string, RxNodeId> InstancedMethods
+            = new Dictionary<string, RxNodeId>();
 
     }
 
@@ -293,6 +306,9 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal Dictionary<RxNodeId, PlatformTypeData<RxPlatformVariableType>> VariableTypes
             = new Dictionary<RxNodeId, PlatformTypeData<RxPlatformVariableType>>();
 
+        internal Dictionary<RxNodeId, PlatformTypeData<RxPlatformMethodType>> MethodTypes
+            = new Dictionary<RxNodeId, PlatformTypeData<RxPlatformMethodType>>();
+
         internal Dictionary<RxNodeId, PlatformTypeData<RxPlatformSourceType>> SourceTypes
             = new Dictionary<RxNodeId, PlatformTypeData<RxPlatformSourceType>>();
         internal PlatformTypeRuntime SourceRuntimes
@@ -314,5 +330,6 @@ namespace ENSACO.RxPlatform.Hosting.Model
 
         internal Dictionary<RxNodeId, PlatformTypeData<RxPlatformDataType>> DataTypes
             = new Dictionary<RxNodeId, PlatformTypeData<RxPlatformDataType>>();
+
     }
 }

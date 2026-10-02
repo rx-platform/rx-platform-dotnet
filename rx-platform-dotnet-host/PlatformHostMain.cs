@@ -198,7 +198,8 @@ namespace ENSACO.RxPlatform.Hosting
                     WriteLogTrace = RxPlatformObject.Instance.WriteLogTrace,
                     WriteLogError = RxPlatformObject.Instance.WriteLogError,
                     WriteLogWarning = RxPlatformObject.Instance.WriteLogWarning,
-                    WriteLogCritical = RxPlatformObject.Instance.WriteLogCritical
+                    WriteLogCritical = RxPlatformObject.Instance.WriteLogCritical,
+
                 }
                 , PlatformHostMain.JsonContext);
 
@@ -526,6 +527,8 @@ namespace ENSACO.RxPlatform.Hosting
         public unsafe static void DeinitPlatformHosting(ulong transId)
         {
             ProperyValuesSynhronizator.Stop();
+
+            api.VoidCallback((uint)transId);
 
         }
         [UnmanagedCallersOnly()]

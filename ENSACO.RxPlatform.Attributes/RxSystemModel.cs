@@ -22,7 +22,7 @@ public class BucketStatus
 [RxPlatformDataType(nodeId: "1:i:201326671",  directory: "/sys/types/system",  name: "ItemChangeDetails")]
 public class ItemChangeDetails
 {
-	public DateTime TS { get; set; } = DateTime.Parse("2026-04-06T07:38:53.868");
+	public DateTime TS { get; set; } = DateTime.Parse("2026-09-23T09:21:59.103");
 	public RxNodeId Id { get; set; } = RxNodeId.FromString("");
 	public string Path { get; set; } = "";
 }
@@ -53,15 +53,16 @@ public class EventBase
 {
 }
 [RxPlatformFilterType(nodeId: "1:i:10",  directory: "/sys/types/base",  name: "FilterBase")]
-public class FilterBase
+public class FilterBase : RxPlatformFilterAttribute
 {
+	public FilterBase(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:10" : nodeId, directory == "" ? "/sys/types/base" : directory, name == "" ? "FilterBase" : name, Element == "" ? "FilterBase" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
 [RxPlatformObjectType(nodeId: "1:i:201326655",  directory: "/sys/types/base",  name: "InternalObjectType")]
 public class InternalObjectType : ObjectBase
-{
-}
-[RxPlatformMapperType(nodeId: "1:i:9",  directory: "/sys/types/base",  name: "MapperBase")]
-public class MapperBase
 {
 }
 [RxPlatformObjectType(nodeId: "1:i:1",  directory: "/sys/types/base",  name: "ObjectBase")]
@@ -125,10 +126,6 @@ public class RelationBase : RxPlatformRelationAttribute
 	{
 	}
 
-}
-[RxPlatformSourceType(nodeId: "1:i:8",  directory: "/sys/types/base",  name: "SourceBase")]
-public class SourceBase
-{
 }
 [RxPlatformStructType(nodeId: "1:i:5",  directory: "/sys/types/base",  name: "StructBase")]
 public class StructBase
@@ -254,8 +251,8 @@ public class SystemInfo
 {
 	public string Instance { get; set; } = "";
 	public string Node { get; set; } = "";
-	public DateTime StartTime { get; set; } = DateTime.Parse("2026-04-06T07:38:53.497");
-	public DateTime Time { get; set; } = DateTime.Parse("2026-04-06T07:38:53.868");
+	public DateTime StartTime { get; set; } = DateTime.Parse("2026-09-23T09:21:57.486");
+	public DateTime Time { get; set; } = DateTime.Parse("2026-09-23T09:21:59.103");
 	public string PlatformVer { get; set; } = "";
 	public string LibraryVer { get; set; } = "";
 	public string TerminalVer { get; set; } = "";
@@ -487,13 +484,21 @@ public class OpcClientSecBase : ConnectionTransportPort
 public class OpcEventBase
 {
 }
-[RxPlatformMapperType(nodeId: "1:i:201326753",  directory: "/sys/types/opc",  name: "OpcMapperBase")]
 public class OpcMapperBase : ExternMapper
 {
+	public OpcMapperBase(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:201326753" : nodeId, directory == "" ? "/sys/types/opc" : directory, name == "" ? "OpcMapperBase" : name, Element == "" ? "OpcMapperBase" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
-[RxPlatformMapperType(nodeId: "1:i:201326806",  directory: "/sys/types/opc",  name: "OpcMethodMapperBase")]
 public class OpcMethodMapperBase : ExternMethodMapper
 {
+	public OpcMethodMapperBase(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:201326806" : nodeId, directory == "" ? "/sys/types/opc" : directory, name == "" ? "OpcMethodMapperBase" : name, Element == "" ? "OpcMethodMapperBase" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
 [RxPlatformPortType(nodeId: "1:i:201326720",  directory: "/sys/types/opc",  name: "OpcSecBase")]
 public class OpcSecBase : ConnectionTransportPort
@@ -538,15 +543,27 @@ public class OpcSimpleEvent : OpcEventBase
 	public string SimplePath { get; set; } = "";
 	public uint NumericId { get; set; } = 0;
 }
-[RxPlatformMapperType(nodeId: "1:i:201326752",  directory: "/sys/types/opc",  name: "OpcSimpleMapper")]
 public class OpcSimpleMapper : OpcMapperBase
 {
+	public OpcSimpleMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string SimplePath = "", uint NumericId = 0)
+		: base(nodeId == "" ? "1:i:201326752" : nodeId, directory == "" ? "/sys/types/opc" : directory, name == "" ? "OpcSimpleMapper" : name, Element == "" ? "OpcSimpleMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.SimplePath = SimplePath;this.NumericId = NumericId;
+
+	}
+
 	public string SimplePath { get; set; } = "";
 	public uint NumericId { get; set; } = 0;
 }
-[RxPlatformMapperType(nodeId: "1:i:201326802",  directory: "/sys/types/opc",  name: "OpcSimpleMethodMapper")]
 public class OpcSimpleMethodMapper : OpcMethodMapperBase
 {
+	public OpcSimpleMethodMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string SimplePath = "", uint NumericId = 0)
+		: base(nodeId == "" ? "1:i:201326802" : nodeId, directory == "" ? "/sys/types/opc" : directory, name == "" ? "OpcSimpleMethodMapper" : name, Element == "" ? "OpcSimpleMethodMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.SimplePath = SimplePath;this.NumericId = NumericId;
+
+	}
+
 	public string SimplePath { get; set; } = "";
 	public uint NumericId { get; set; } = 0;
 }
@@ -567,17 +584,27 @@ public class OpcSimpleServerConnection : PortReference
 	}
 
 }
-[RxPlatformSourceType(nodeId: "1:i:201326758",  directory: "/sys/types/opc",  name: "OpcSimpleSource")]
 public class OpcSimpleSource : OpcSourceBase
 {
+	public OpcSimpleSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, int Namespace = 2, string SimplePath = "", uint NumericId = 0, byte AttrId = 13)
+		: base(nodeId == "" ? "1:i:201326758" : nodeId, directory == "" ? "/sys/types/opc" : directory, name == "" ? "OpcSimpleSource" : name, Element == "" ? "OpcSimpleSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.Namespace = Namespace;this.SimplePath = SimplePath;this.NumericId = NumericId;this.AttrId = AttrId;
+
+	}
+
 	public int Namespace { get; set; } = 2;
 	public string SimplePath { get; set; } = "";
 	public uint NumericId { get; set; } = 0;
 	public byte AttrId { get; set; } = 13;
 }
-[RxPlatformSourceType(nodeId: "1:i:201326757",  directory: "/sys/types/opc",  name: "OpcSourceBase")]
 public class OpcSourceBase : ExternSource
 {
+	public OpcSourceBase(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:201326757" : nodeId, directory == "" ? "/sys/types/opc" : directory, name == "" ? "OpcSourceBase" : name, Element == "" ? "OpcSourceBase" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
 [RxPlatformStructType(nodeId: "1:i:201326781",  directory: "/sys/types/mqtt",  name: "MqttClientOptions")]
 public class MqttClientOptions : PortOptions
@@ -615,18 +642,30 @@ public class MqttEventBase
 	public string Topic { get; set; } = "";
 	public byte QoS { get; set; } = 1;
 }
-[RxPlatformMapperType(nodeId: "1:i:201326836",  directory: "/sys/types/mqtt",  name: "MqttEventMapperBase")]
 public class MqttEventMapperBase : ExternEventMapper
 {
+	public MqttEventMapperBase(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string Topic = "", string DataTopic = "", byte QoS = 1, bool Retain = true, uint HoldTime = 0)
+		: base(nodeId == "" ? "1:i:201326836" : nodeId, directory == "" ? "/sys/types/mqtt" : directory, name == "" ? "MqttEventMapperBase" : name, Element == "" ? "MqttEventMapperBase" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.Topic = Topic;this.DataTopic = DataTopic;this.QoS = QoS;this.Retain = Retain;this.HoldTime = HoldTime;
+
+	}
+
 	public string Topic { get; set; } = "";
 	public string DataTopic { get; set; } = "";
 	public byte QoS { get; set; } = 1;
 	public bool Retain { get; set; } = true;
 	public uint HoldTime { get; set; } = 0;
 }
-[RxPlatformMapperType(nodeId: "1:i:201326794",  directory: "/sys/types/mqtt",  name: "MqttMapperBase")]
 public class MqttMapperBase : ExternMapper
 {
+	public MqttMapperBase(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string Topic = "", string DataTopic = "", byte QoS = 1, bool Retain = true, uint HoldTime = 0)
+		: base(nodeId == "" ? "1:i:201326794" : nodeId, directory == "" ? "/sys/types/mqtt" : directory, name == "" ? "MqttMapperBase" : name, Element == "" ? "MqttMapperBase" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.Topic = Topic;this.DataTopic = DataTopic;this.QoS = QoS;this.Retain = Retain;this.HoldTime = HoldTime;
+
+	}
+
 	public string Topic { get; set; } = "";
 	public string DataTopic { get; set; } = "";
 	public byte QoS { get; set; } = 1;
@@ -649,20 +688,38 @@ public class MqttServerStatus : PortStatusData
 public class MqttSimpleBrokerEvent : MqttEventBase
 {
 }
-[RxPlatformMapperType(nodeId: "1:i:201326838",  directory: "/sys/types/mqtt",  name: "MqttSimpleBrokerEventMapper")]
 public class MqttSimpleBrokerEventMapper : MqttEventMapperBase
 {
+	public MqttSimpleBrokerEventMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string JSONFormat = "{ 'val' : @val }", string DataTopic = "")
+		: base(nodeId == "" ? "1:i:201326838" : nodeId, directory == "" ? "/sys/types/mqtt" : directory, name == "" ? "MqttSimpleBrokerEventMapper" : name, Element == "" ? "MqttSimpleBrokerEventMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.JSONFormat = JSONFormat;this.DataTopic = DataTopic;
+
+	}
+
 	public string JSONFormat { get; set; } = "{ 'val' : @val }";
 	public new string DataTopic { get; set; } = "";
 }
-[RxPlatformMapperType(nodeId: "1:i:201326798",  directory: "/sys/types/mqtt",  name: "MqttSimpleBrokerMapper")]
 public class MqttSimpleBrokerMapper : MqttMapperBase
 {
+	public MqttSimpleBrokerMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string JSONFormat = "{ 'val' : @val }")
+		: base(nodeId == "" ? "1:i:201326798" : nodeId, directory == "" ? "/sys/types/mqtt" : directory, name == "" ? "MqttSimpleBrokerMapper" : name, Element == "" ? "MqttSimpleBrokerMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.JSONFormat = JSONFormat;
+
+	}
+
 	public string JSONFormat { get; set; } = "{ 'val' : @val }";
 }
-[RxPlatformSourceType(nodeId: "1:i:201326799",  directory: "/sys/types/mqtt",  name: "MqttSimpleBrokerSource")]
 public class MqttSimpleBrokerSource : MqttSourceBase
 {
+	public MqttSimpleBrokerSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, string ValuePath = "val", string TimePath = "", string QualityPath = "")
+		: base(nodeId == "" ? "1:i:201326799" : nodeId, directory == "" ? "/sys/types/mqtt" : directory, name == "" ? "MqttSimpleBrokerSource" : name, Element == "" ? "MqttSimpleBrokerSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.ValuePath = ValuePath;this.TimePath = TimePath;this.QualityPath = QualityPath;
+
+	}
+
 	public string ValuePath { get; set; } = "val";
 	public string TimePath { get; set; } = "";
 	public string QualityPath { get; set; } = "";
@@ -690,14 +747,26 @@ public class MqttSimpleClientConnection : PortReference
 public class MqttSimpleEvent : MqttEventBase
 {
 }
-[RxPlatformMapperType(nodeId: "1:i:201326837",  directory: "/sys/types/mqtt",  name: "MqttSimpleEventMapper")]
 public class MqttSimpleEventMapper : MqttEventMapperBase
 {
+	public MqttSimpleEventMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, bool Pretty = false)
+		: base(nodeId == "" ? "1:i:201326837" : nodeId, directory == "" ? "/sys/types/mqtt" : directory, name == "" ? "MqttSimpleEventMapper" : name, Element == "" ? "MqttSimpleEventMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.Pretty = Pretty;
+
+	}
+
 	public bool Pretty { get; set; } = false;
 }
-[RxPlatformMapperType(nodeId: "1:i:201326795",  directory: "/sys/types/mqtt",  name: "MqttSimpleMapper")]
 public class MqttSimpleMapper : MqttMapperBase
 {
+	public MqttSimpleMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string JSONFormat = "{ 'val' : @val }")
+		: base(nodeId == "" ? "1:i:201326795" : nodeId, directory == "" ? "/sys/types/mqtt" : directory, name == "" ? "MqttSimpleMapper" : name, Element == "" ? "MqttSimpleMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.JSONFormat = JSONFormat;
+
+	}
+
 	public string JSONFormat { get; set; } = "{ 'val' : @val }";
 }
 [RxPlatformPortType(nodeId: "1:i:201326786",  directory: "/sys/types/mqtt",  name: "MqttSimpleServer")]
@@ -719,16 +788,28 @@ public class MqttSimpleServerConnection : PortReference
 	}
 
 }
-[RxPlatformSourceType(nodeId: "1:i:201326797",  directory: "/sys/types/mqtt",  name: "MqttSimpleSource")]
 public class MqttSimpleSource : MqttSourceBase
 {
+	public MqttSimpleSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, string ValuePath = "val", string TimePath = "", string QualityPath = "")
+		: base(nodeId == "" ? "1:i:201326797" : nodeId, directory == "" ? "/sys/types/mqtt" : directory, name == "" ? "MqttSimpleSource" : name, Element == "" ? "MqttSimpleSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.ValuePath = ValuePath;this.TimePath = TimePath;this.QualityPath = QualityPath;
+
+	}
+
 	public string ValuePath { get; set; } = "val";
 	public string TimePath { get; set; } = "";
 	public string QualityPath { get; set; } = "";
 }
-[RxPlatformSourceType(nodeId: "1:i:201326796",  directory: "/sys/types/mqtt",  name: "MqttSourceBase")]
 public class MqttSourceBase : ExternSource
 {
+	public MqttSourceBase(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, string Topic = "", byte QoS = 1)
+		: base(nodeId == "" ? "1:i:201326796" : nodeId, directory == "" ? "/sys/types/mqtt" : directory, name == "" ? "MqttSourceBase" : name, Element == "" ? "MqttSourceBase" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.Topic = Topic;this.QoS = QoS;
+
+	}
+
 	public string Topic { get; set; } = "";
 	public byte QoS { get; set; } = 1;
 }
@@ -753,9 +834,15 @@ public class KnxIpPortStatus : PortStatusData
 	public ulong Published { get; set; } = 0;
 	public ulong Received { get; set; } = 0;
 }
-[RxPlatformSourceType(nodeId: "1:i:201326881",  directory: "/sys/types/knx",  name: "KnxSource")]
 public class KnxSource : ExternSource
 {
+	public KnxSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, string ValuePath = "val", string TimePath = "", string QualityPath = "")
+		: base(nodeId == "" ? "1:i:201326881" : nodeId, directory == "" ? "/sys/types/knx" : directory, name == "" ? "KnxSource" : name, Element == "" ? "KnxSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.ValuePath = ValuePath;this.TimePath = TimePath;this.QualityPath = QualityPath;
+
+	}
+
 	public string ValuePath { get; set; } = "val";
 	public string TimePath { get; set; } = "";
 	public string QualityPath { get; set; } = "";
@@ -770,9 +857,15 @@ public class XMLPortOptions : PortOptions
 {
 	public string AddrXMLPath { get; set; } = "";
 }
-[RxPlatformSourceType(nodeId: "1:i:201326851",  directory: "/sys/types/xml",  name: "XMLSource")]
 public class XMLSource : ExternSource
 {
+	public XMLSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, string XMLPath = "", string XMLAddr = "")
+		: base(nodeId == "" ? "1:i:201326851" : nodeId, directory == "" ? "/sys/types/xml" : directory, name == "" ? "XMLSource" : name, Element == "" ? "XMLSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.XMLPath = XMLPath;this.XMLAddr = XMLAddr;
+
+	}
+
 	public string XMLPath { get; set; } = "";
 	public string XMLAddr { get; set; } = "";
 }
@@ -781,8 +874,15 @@ public class JSONPort : ApplicationPort
 {
 }
 [RxPlatformFilterType(nodeId: "1:i:201326754",  directory: "/sys/types/support",  name: "ASCIIFilter")]
-public class ASCIIFilter
+public class ASCIIFilter : RxPlatformFilterAttribute
 {
+	public ASCIIFilter(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, byte InvalidChar = 63, byte Columns = 0, byte MaxLen = 0)
+		: base(nodeId == "" ? "1:i:201326754" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "ASCIIFilter" : name, Element == "" ? "ASCIIFilter" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.InvalidChar = InvalidChar;this.Columns = Columns;this.MaxLen = MaxLen;
+
+	}
+
 	public byte InvalidChar { get; set; } = 63;
 	public byte Columns { get; set; } = 0;
 	public byte MaxLen { get; set; } = 0;
@@ -802,8 +902,15 @@ public class BridgeVariable<T>
 	public bool AckFromInput { get; set; } = false;
 }
 [RxPlatformFilterType(nodeId: "1:i:201326770",  directory: "/sys/types/support",  name: "CalcFilter")]
-public class CalcFilter
+public class CalcFilter : RxPlatformFilterAttribute
 {
+	public CalcFilter(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, string InPath = "x", string OutPath = "x")
+		: base(nodeId == "" ? "1:i:201326770" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "CalcFilter" : name, Element == "" ? "CalcFilter" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.InPath = InPath;this.OutPath = OutPath;
+
+	}
+
 	public string InPath { get; set; } = "x";
 	public string OutPath { get; set; } = "x";
 }
@@ -849,13 +956,27 @@ public class ComplexOutputVariable<T>
 	public bool AckFromInput { get; set; } = false;
 }
 [RxPlatformFilterType(nodeId: "1:i:201326773",  directory: "/sys/types/support",  name: "CumulativeSpeedFilter")]
-public class CumulativeSpeedFilter
+public class CumulativeSpeedFilter : RxPlatformFilterAttribute
 {
+	public CumulativeSpeedFilter(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, uint Period = 1000)
+		: base(nodeId == "" ? "1:i:201326773" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "CumulativeSpeedFilter" : name, Element == "" ? "CumulativeSpeedFilter" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.Period = Period;
+
+	}
+
 	public uint Period { get; set; } = 1000;
 }
 [RxPlatformFilterType(nodeId: "1:i:201326694",  directory: "/sys/types/support",  name: "CutoffScaling")]
-public class CutoffScaling
+public class CutoffScaling : RxPlatformFilterAttribute
 {
+	public CutoffScaling(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, double InCutoffValue = 0, double OutCutoffValue = 0)
+		: base(nodeId == "" ? "1:i:201326694" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "CutoffScaling" : name, Element == "" ? "CutoffScaling" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.InCutoffValue = InCutoffValue;this.OutCutoffValue = OutCutoffValue;
+
+	}
+
 	public double InCutoffValue { get; set; } = 0;
 	public double OutCutoffValue { get; set; } = 0;
 }
@@ -888,9 +1009,13 @@ public class DotNetDynamicRelation : DotNetRelation
 public class DotNetEvent
 {
 }
-[RxPlatformMapperType(nodeId: "1:i:201326869",  directory: "/sys/types/support",  name: "DotNetMapper")]
 public class DotNetMapper : VariableMapper
 {
+	public DotNetMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:201326869" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "DotNetMapper" : name, Element == "" ? "DotNetMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
 public class DotNetRelation : RxPlatformRelationAttribute
 {
@@ -905,9 +1030,13 @@ public class DotNetRelation : RxPlatformRelationAttribute
 	}
 
 }
-[RxPlatformSourceType(nodeId: "1:i:201326868",  directory: "/sys/types/support",  name: "DotNetSource")]
 public class DotNetSource : VariableSource
 {
+	public DotNetSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:201326868" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "DotNetSource" : name, Element == "" ? "DotNetSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
 public class DotNetStaticRelation : DotNetRelation
 {
@@ -932,38 +1061,78 @@ public class EthernetPortOptions : PortOptions
 	public string Port { get; set; } = "";
 	public ushort[] EtherTypes { get; set; } = [];
 }
-[RxPlatformMapperType(nodeId: "1:i:201326810",  directory: "/sys/types/support",  name: "EventMapper")]
-public class EventMapper
+public class EventMapper : RxPlatformEventMapperAttribute
 {
+	public EventMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:201326810" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "EventMapper" : name, Element == "" ? "EventMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
-[RxPlatformMapperType(nodeId: "1:i:201326811",  directory: "/sys/types/support",  name: "ExternEventMapper")]
 public class ExternEventMapper : EventMapper
 {
+	public ExternEventMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string Port = "")
+		: base(nodeId == "" ? "1:i:201326811" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "ExternEventMapper" : name, Element == "" ? "ExternEventMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.Port = Port;
+
+	}
+
 	public string Port { get; set; } = "";
 }
-[RxPlatformMapperType(nodeId: "1:i:201326643",  directory: "/sys/types/support",  name: "ExternMapper")]
 public class ExternMapper : VariableMapper
 {
+	public ExternMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string Port = "")
+		: base(nodeId == "" ? "1:i:201326643" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "ExternMapper" : name, Element == "" ? "ExternMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.Port = Port;
+
+	}
+
 	public string Port { get; set; } = "";
 }
-[RxPlatformMapperType(nodeId: "1:i:201326805",  directory: "/sys/types/support",  name: "ExternMethodMapper")]
 public class ExternMethodMapper : MethodMapper
 {
+	public ExternMethodMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string Port = "")
+		: base(nodeId == "" ? "1:i:201326805" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "ExternMethodMapper" : name, Element == "" ? "ExternMethodMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.Port = Port;
+
+	}
+
 	public string Port { get; set; } = "";
 }
-[RxPlatformSourceType(nodeId: "1:i:201326644",  directory: "/sys/types/support",  name: "ExternSource")]
 public class ExternSource : VariableSource
 {
+	public ExternSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, string Port = "")
+		: base(nodeId == "" ? "1:i:201326644" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "ExternSource" : name, Element == "" ? "ExternSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.Port = Port;
+
+	}
+
 	public string Port { get; set; } = "";
 }
-[RxPlatformMapperType(nodeId: "1:i:201326669",  directory: "/sys/types/support",  name: "ExternStructuralMapper")]
 public class ExternStructuralMapper : StructuralMapper
 {
+	public ExternStructuralMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, string Port = "")
+		: base(nodeId == "" ? "1:i:201326669" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "ExternStructuralMapper" : name, Element == "" ? "ExternStructuralMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.Port = Port;
+
+	}
+
 	public string Port { get; set; } = "";
 }
-[RxPlatformSourceType(nodeId: "1:i:201326670",  directory: "/sys/types/support",  name: "ExternStructuralSource")]
 public class ExternStructuralSource : StructuralSource
 {
+	public ExternStructuralSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, string Port = "")
+		: base(nodeId == "" ? "1:i:201326670" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "ExternStructuralSource" : name, Element == "" ? "ExternStructuralSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.Port = Port;
+
+	}
+
 	public string Port { get; set; } = "";
 }
 [RxPlatformStructType(nodeId: "1:i:201326624",  directory: "/sys/types/support",  name: "ExternalPortStatusData")]
@@ -980,13 +1149,25 @@ public class FilePortOptions : PortOptions
 	public int FileTimeout { get; set; } = 300000;
 }
 [RxPlatformFilterType(nodeId: "1:i:201326760",  directory: "/sys/types/support",  name: "Hex2DecFilter")]
-public class Hex2DecFilter
+public class Hex2DecFilter : RxPlatformFilterAttribute
 {
+	public Hex2DecFilter(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, bool EmptyIsZero = true)
+		: base(nodeId == "" ? "1:i:201326760" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "Hex2DecFilter" : name, Element == "" ? "Hex2DecFilter" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.EmptyIsZero = EmptyIsZero;
+
+	}
+
 	public bool EmptyIsZero { get; set; } = true;
 }
 [RxPlatformFilterType(nodeId: "1:i:201326696",  directory: "/sys/types/support",  name: "HighCutoffScaling")]
 public class HighCutoffScaling : CutoffScaling
 {
+	public HighCutoffScaling(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:201326696" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "HighCutoffScaling" : name, Element == "" ? "HighCutoffScaling" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
 [RxPlatformStructType(nodeId: "1:i:201326825",  directory: "/sys/types/support",  name: "HttpAddressingPortOptions")]
 public class HttpAddressingPortOptions : PortOptions
@@ -1009,14 +1190,28 @@ public class IPBindData
 	public ushort IPPort { get; set; } = 0;
 }
 [RxPlatformFilterType(nodeId: "1:i:201326759",  directory: "/sys/types/support",  name: "LatchFilter")]
-public class LatchFilter
+public class LatchFilter : RxPlatformFilterAttribute
 {
+	public LatchFilter(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, bool Unlatch = false, uint Timeout = 0)
+		: base(nodeId == "" ? "1:i:201326759" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "LatchFilter" : name, Element == "" ? "LatchFilter" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.Unlatch = Unlatch;this.Timeout = Timeout;
+
+	}
+
 	public bool Unlatch { get; set; } = false;
 	public uint Timeout { get; set; } = 0;
 }
 [RxPlatformFilterType(nodeId: "1:i:201326693",  directory: "/sys/types/support",  name: "LimitFilter")]
-public class LimitFilter
+public class LimitFilter : RxPlatformFilterAttribute
 {
+	public LimitFilter(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, double HiInput = 1000, double LowInput = 0, double HiOutput = 1000, double LowOutput = 0)
+		: base(nodeId == "" ? "1:i:201326693" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "LimitFilter" : name, Element == "" ? "LimitFilter" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.HiInput = HiInput;this.LowInput = LowInput;this.HiOutput = HiOutput;this.LowOutput = LowOutput;
+
+	}
+
 	public double HiInput { get; set; } = 1000;
 	public double LowInput { get; set; } = 0;
 	public double HiOutput { get; set; } = 1000;
@@ -1031,8 +1226,15 @@ public class LimiterPortOptions : PortOptions
 	public int QueueSize { get; set; } = 0;
 }
 [RxPlatformFilterType(nodeId: "1:i:201326649",  directory: "/sys/types/support",  name: "LinearScaling")]
-public class LinearScaling
+public class LinearScaling : RxPlatformFilterAttribute
 {
+	public LinearScaling(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, double HiEU = 10, double LowEU = 0, double HiRaw = 100, double LowRaw = 0)
+		: base(nodeId == "" ? "1:i:201326649" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "LinearScaling" : name, Element == "" ? "LinearScaling" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.HiEU = HiEU;this.LowEU = LowEU;this.HiRaw = HiRaw;this.LowRaw = LowRaw;
+
+	}
+
 	public double HiEU { get; set; } = 10;
 	public double LowEU { get; set; } = 0;
 	public double HiRaw { get; set; } = 100;
@@ -1041,6 +1243,11 @@ public class LinearScaling
 [RxPlatformFilterType(nodeId: "1:i:201326695",  directory: "/sys/types/support",  name: "LowCutoffScaling")]
 public class LowCutoffScaling : CutoffScaling
 {
+	public LowCutoffScaling(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:201326695" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "LowCutoffScaling" : name, Element == "" ? "LowCutoffScaling" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
 [RxPlatformStructType(nodeId: "1:i:201326765",  directory: "/sys/types/support",  name: "MACBindData")]
 public class MACBindData
@@ -1069,9 +1276,13 @@ public class MasterTimeoutsData : TimeoutsData
 	public uint LinearReconnectTimeout { get; set; } = 5000;
 	public uint MaxReconnectTimeout { get; set; } = 5000;
 }
-[RxPlatformMapperType(nodeId: "1:i:201326804",  directory: "/sys/types/support",  name: "MethodMapper")]
-public class MethodMapper
+public class MethodMapper : RxPlatformMethodMapperAttribute
 {
+	public MethodMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:201326804" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "MethodMapper" : name, Element == "" ? "MethodMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
 [RxPlatformVariableType(nodeId: "1:i:201326823",  directory: "/sys/types/support",  name: "MultiplexerVariable")]
 public class MultiplexerVariable<T>
@@ -1131,9 +1342,15 @@ public class PeerStatus
 	public bool Online { get; set; } = false;
 	public string Version { get; set; } = "";
 }
-[RxPlatformSourceType(nodeId: "1:i:201326665",  directory: "/sys/types/support",  name: "PlatformSource")]
 public class PlatformSource : VariableSource
 {
+	public PlatformSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, string Path = "")
+		: base(nodeId == "" ? "1:i:201326665" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "PlatformSource" : name, Element == "" ? "PlatformSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.Path = Path;
+
+	}
+
 	public string Path { get; set; } = "";
 }
 [RxPlatformStructType(nodeId: "1:i:201326630",  directory: "/sys/types/support",  name: "PoolData")]
@@ -1146,18 +1363,38 @@ public class PoolData
 	public uint MaxQueueSize { get; set; } = 0;
 }
 [RxPlatformFilterType(nodeId: "1:i:201326716",  directory: "/sys/types/support",  name: "QualityFilter")]
-public class QualityFilter
+public class QualityFilter : RxPlatformFilterAttribute
 {
+	public QualityFilter(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, bool GoodValue = true)
+		: base(nodeId == "" ? "1:i:201326716" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "QualityFilter" : name, Element == "" ? "QualityFilter" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.GoodValue = GoodValue;
+
+	}
+
 	public bool GoodValue { get; set; } = true;
 }
-[RxPlatformSourceType(nodeId: "1:i:201326645",  directory: "/sys/types/support",  name: "RegisterSource")]
 public class RegisterSource : VariableSource
 {
+	public RegisterSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, bool Persist = false)
+		: base(nodeId == "" ? "1:i:201326645" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "RegisterSource" : name, Element == "" ? "RegisterSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.Persist = Persist;
+
+	}
+
 	public bool Persist { get; set; } = false;
 }
 [RxPlatformFilterType(nodeId: "1:i:201326856",  directory: "/sys/types/support",  name: "RoundFilter")]
-public class RoundFilter
+public class RoundFilter : RxPlatformFilterAttribute
 {
+	public RoundFilter(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, int DecimalPlaces = 2)
+		: base(nodeId == "" ? "1:i:201326856" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "RoundFilter" : name, Element == "" ? "RoundFilter" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.DecimalPlaces = DecimalPlaces;
+
+	}
+
 	public int DecimalPlaces { get; set; } = 2;
 }
 [RxPlatformStructType(nodeId: "1:i:201326690",  directory: "/sys/types/support",  name: "RouterPortOptions")]
@@ -1212,14 +1449,26 @@ public class StringBindData
 {
 	public string Endpoint { get; set; } = "";
 }
-[RxPlatformMapperType(nodeId: "1:i:201326661",  directory: "/sys/types/support",  name: "StructuralMapper")]
-public class StructuralMapper
+public class StructuralMapper : RxPlatformStructuralMapperAttribute
 {
+	public StructuralMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, bool Root = false)
+		: base(nodeId == "" ? "1:i:201326661" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "StructuralMapper" : name, Element == "" ? "StructuralMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.Root = Root;
+
+	}
+
 	public bool Root { get; set; } = false;
 }
-[RxPlatformSourceType(nodeId: "1:i:201326663",  directory: "/sys/types/support",  name: "StructuralSource")]
-public class StructuralSource
+public class StructuralSource : RxPlatformStructuralSourceAttribute
 {
+	public StructuralSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, bool Root = false)
+		: base(nodeId == "" ? "1:i:201326663" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "StructuralSource" : name, Element == "" ? "StructuralSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.Root = Root;
+
+	}
+
 	public bool Root { get; set; } = false;
 }
 [RxPlatformStructType(nodeId: "1:i:201326852",  directory: "/sys/types/support",  name: "TcpPortOptions")]
@@ -1255,19 +1504,35 @@ public class TlsPortTimeouts : TimeoutsData
 {
 	public uint TokenTimeout { get; set; } = 300000;
 }
-[RxPlatformMapperType(nodeId: "1:i:201326803",  directory: "/sys/types/support",  name: "VariableMapper")]
-public class VariableMapper
+public class VariableMapper : RxPlatformVariableMapperAttribute
 {
+	public VariableMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, byte ValueType = 0)
+		: base(nodeId == "" ? "1:i:201326803" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "VariableMapper" : name, Element == "" ? "VariableMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.ValueType = ValueType;
+
+	}
+
 	public byte ValueType { get; set; } = 0;
 }
-[RxPlatformSourceType(nodeId: "1:i:201326809",  directory: "/sys/types/support",  name: "VariableSource")]
-public class VariableSource
+public class VariableSource : RxPlatformVariableSourceAttribute
 {
+	public VariableSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, byte ValueType = 0)
+		: base(nodeId == "" ? "1:i:201326809" : nodeId, directory == "" ? "/sys/types/support" : directory, name == "" ? "VariableSource" : name, Element == "" ? "VariableSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.ValueType = ValueType;
+
+	}
+
 	public byte ValueType { get; set; } = 0;
 }
-[RxPlatformSourceType(nodeId: "1:i:201326656",  directory: "/sys/types/simulation",  name: "SimulationSource")]
 public class SimulationSource : VariableSource
 {
+	public SimulationSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:i:201326656" : nodeId, directory == "" ? "/sys/types/simulation" : directory, name == "" ? "SimulationSource" : name, Element == "" ? "SimulationSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
 public class Application : RxPlatformRelationAttribute
 {
@@ -1357,4 +1622,4 @@ public class StaticHttpDisplayResource : HttpDisplayResource
 {
 }
 }
-// Generated on:Monday, April 6, 2026  9:45:49 AM
+// Generated on:Wednesday, September 23, 2026  11:34:24 AM

@@ -49,29 +49,49 @@ public class ModbusTCPMaster : TransportPort
 public class ModbusTCPSlave : TransportPort
 {
 }
-[RxPlatformSourceType(nodeId: "1:g:8aed3480-db70-4910-afc8-f9491977bfde",  directory: "/sys/plugins/modbus/master",  name: "ModbusCoilSource")]
 public class ModbusCoilSource : ModbusSourceBase
 {
+	public ModbusCoilSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:g:8aed3480-db70-4910-afc8-f9491977bfde" : nodeId, directory == "" ? "/sys/plugins/modbus/master" : directory, name == "" ? "ModbusCoilSource" : name, Element == "" ? "ModbusCoilSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
-[RxPlatformSourceType(nodeId: "1:g:f628eb7c-aafd-4a9a-a28d-c69ba5726ba2",  directory: "/sys/plugins/modbus/master",  name: "ModbusHoldingRegisterSource")]
 public class ModbusHoldingRegisterSource : ModbusSourceBase
 {
+	public ModbusHoldingRegisterSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, byte BitOffset = 0, byte StringLen = 8, bool SwapBytes = false, bool SwapWords = false)
+		: base(nodeId == "" ? "1:g:f628eb7c-aafd-4a9a-a28d-c69ba5726ba2" : nodeId, directory == "" ? "/sys/plugins/modbus/master" : directory, name == "" ? "ModbusHoldingRegisterSource" : name, Element == "" ? "ModbusHoldingRegisterSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.BitOffset = BitOffset;this.StringLen = StringLen;this.SwapBytes = SwapBytes;this.SwapWords = SwapWords;
+
+	}
+
 	public byte BitOffset { get; set; } = 0;
 	public byte StringLen { get; set; } = 8;
 	public bool SwapBytes { get; set; } = false;
 	public bool SwapWords { get; set; } = false;
 }
-[RxPlatformSourceType(nodeId: "1:g:2b8d21ea-e73c-4ff5-b111-09ea0c840f8f",  directory: "/sys/plugins/modbus/master",  name: "ModbusInputRegisterSource")]
 public class ModbusInputRegisterSource : ModbusSourceBase
 {
+	public ModbusInputRegisterSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, byte BitOffset = 0, byte StringLen = 8, bool SwapBytes = false, bool SwapWords = false)
+		: base(nodeId == "" ? "1:g:2b8d21ea-e73c-4ff5-b111-09ea0c840f8f" : nodeId, directory == "" ? "/sys/plugins/modbus/master" : directory, name == "" ? "ModbusInputRegisterSource" : name, Element == "" ? "ModbusInputRegisterSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.BitOffset = BitOffset;this.StringLen = StringLen;this.SwapBytes = SwapBytes;this.SwapWords = SwapWords;
+
+	}
+
 	public byte BitOffset { get; set; } = 0;
 	public byte StringLen { get; set; } = 8;
 	public bool SwapBytes { get; set; } = false;
 	public bool SwapWords { get; set; } = false;
 }
-[RxPlatformSourceType(nodeId: "1:g:4c8215c7-5531-474a-988f-c2eab45d9c13",  directory: "/sys/plugins/modbus/master",  name: "ModbusInputSource")]
 public class ModbusInputSource : ModbusSourceBase
 {
+	public ModbusInputSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:g:4c8215c7-5531-474a-988f-c2eab45d9c13" : nodeId, directory == "" ? "/sys/plugins/modbus/master" : directory, name == "" ? "ModbusInputSource" : name, Element == "" ? "ModbusInputSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
 [RxPlatformPortType(nodeId: "1:g:ac064be0-52b6-4d41-b607-db0f8987207b",  directory: "/sys/plugins/modbus/master",  name: "ModbusMasterConnection")]
 public class ModbusMasterConnection : ApplicationPort
@@ -118,49 +138,94 @@ public class ModbusMasterStatus : MasterPortStatusData
 	public string Product { get; set; } = "";
 	public string Application { get; set; } = "";
 }
-[RxPlatformSourceType(nodeId: "1:g:f58e5ba7-3ec2-4953-a27b-45ede5d6bd47",  directory: "/sys/plugins/modbus/master",  name: "ModbusSourceBase")]
 public class ModbusSourceBase : ExternSource
 {
+	public ModbusSourceBase(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, ushort Address = 0)
+		: base(nodeId == "" ? "1:g:f58e5ba7-3ec2-4953-a27b-45ede5d6bd47" : nodeId, directory == "" ? "/sys/plugins/modbus/master" : directory, name == "" ? "ModbusSourceBase" : name, Element == "" ? "ModbusSourceBase" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.Address = Address;
+
+	}
+
 	public ushort Address { get; set; } = 0;
 }
-[RxPlatformSourceType(nodeId: "1:g:7ad41d69-6bb3-47b7-bee8-d6ad8ab4917a",  directory: "/sys/plugins/modbus/master",  name: "ModbusStructSource")]
 public class ModbusStructSource : ExternStructuralSource
 {
+	public ModbusStructSource(string nodeId = "", string directory = "", string name = "", string Element = "", bool Input = true, bool Output = false, bool Sim = false, bool Proc = true, ushort InputRegAddress = 0, ushort InputAddress = 0, ushort HoldingRegAddress = 0, ushort CoilAddress = 0)
+		: base(nodeId == "" ? "1:g:7ad41d69-6bb3-47b7-bee8-d6ad8ab4917a" : nodeId, directory == "" ? "/sys/plugins/modbus/master" : directory, name == "" ? "ModbusStructSource" : name, Element == "" ? "ModbusStructSource" : Element, Input : Input, Output: Output, Sim: Sim, Proc: Proc)
+	{
+		this.InputRegAddress = InputRegAddress;this.InputAddress = InputAddress;this.HoldingRegAddress = HoldingRegAddress;this.CoilAddress = CoilAddress;
+
+	}
+
 	public ushort InputRegAddress { get; set; } = 0;
 	public ushort InputAddress { get; set; } = 0;
 	public ushort HoldingRegAddress { get; set; } = 0;
 	public ushort CoilAddress { get; set; } = 0;
 }
-[RxPlatformMapperType(nodeId: "1:g:32c6e09d-f6fc-4d1d-8dcd-d40b1603adea",  directory: "/sys/plugins/modbus/slave",  name: "ModbusCoil")]
 public class ModbusCoil : ModbusMapperBase
 {
-	public bool WriteThrough { get; set; } = false;
+	public ModbusCoil(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, bool WriteThrough = true)
+		: base(nodeId == "" ? "1:g:32c6e09d-f6fc-4d1d-8dcd-d40b1603adea" : nodeId, directory == "" ? "/sys/plugins/modbus/slave" : directory, name == "" ? "ModbusCoil" : name, Element == "" ? "ModbusCoil" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.WriteThrough = WriteThrough;
+
+	}
+
+	public bool WriteThrough { get; set; } = true;
 }
-[RxPlatformMapperType(nodeId: "1:g:7e3a32e5-cf4d-4471-843b-36ef5db94360",  directory: "/sys/plugins/modbus/slave",  name: "ModbusHoldingRegister")]
 public class ModbusHoldingRegister : ModbusMapperBase
 {
+	public ModbusHoldingRegister(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, byte BitOffset = 0, bool WriteThrough = true, byte StringLen = 8, bool SwapBytes = false, bool SwapWords = false)
+		: base(nodeId == "" ? "1:g:7e3a32e5-cf4d-4471-843b-36ef5db94360" : nodeId, directory == "" ? "/sys/plugins/modbus/slave" : directory, name == "" ? "ModbusHoldingRegister" : name, Element == "" ? "ModbusHoldingRegister" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.BitOffset = BitOffset;this.WriteThrough = WriteThrough;this.StringLen = StringLen;this.SwapBytes = SwapBytes;this.SwapWords = SwapWords;
+
+	}
+
 	public byte BitOffset { get; set; } = 0;
-	public bool WriteThrough { get; set; } = false;
+	public bool WriteThrough { get; set; } = true;
 	public byte StringLen { get; set; } = 8;
 	public bool SwapBytes { get; set; } = false;
 	public bool SwapWords { get; set; } = false;
 }
-[RxPlatformMapperType(nodeId: "1:g:7530f186-881f-40d8-bbd5-40c702465900",  directory: "/sys/plugins/modbus/slave",  name: "ModbusInput")]
 public class ModbusInput : ModbusMapperBase
 {
+	public ModbusInput(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true)
+		: base(nodeId == "" ? "1:g:7530f186-881f-40d8-bbd5-40c702465900" : nodeId, directory == "" ? "/sys/plugins/modbus/slave" : directory, name == "" ? "ModbusInput" : name, Element == "" ? "ModbusInput" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+	}
+
 }
-[RxPlatformMapperType(nodeId: "1:g:172d6fcc-5c3a-4b8e-8c5d-79d2eb60ad77",  directory: "/sys/plugins/modbus/slave",  name: "ModbusInputRegister")]
 public class ModbusInputRegister : ModbusMapperBase
 {
+	public ModbusInputRegister(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, byte BitOffset = 0, byte StringLen = 8, bool SwapBytes = false, bool SwapWords = false)
+		: base(nodeId == "" ? "1:g:172d6fcc-5c3a-4b8e-8c5d-79d2eb60ad77" : nodeId, directory == "" ? "/sys/plugins/modbus/slave" : directory, name == "" ? "ModbusInputRegister" : name, Element == "" ? "ModbusInputRegister" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.BitOffset = BitOffset;this.StringLen = StringLen;this.SwapBytes = SwapBytes;this.SwapWords = SwapWords;
+
+	}
+
 	public byte BitOffset { get; set; } = 0;
 	public byte StringLen { get; set; } = 8;
 	public bool SwapBytes { get; set; } = false;
 	public bool SwapWords { get; set; } = false;
 }
-[RxPlatformMapperType(nodeId: "1:g:54bd4120-967e-45ed-98e1-9d67b89f1df1",  directory: "/sys/plugins/modbus/slave",  name: "ModbusMapperBase")]
 public class ModbusMapperBase : ExternMapper
 {
+	public ModbusMapperBase(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, ushort Address = 0, sbyte QualityType = 0, sbyte QualityAddressType = 0, ushort QualityAddress = 0, byte QualityBitOffset = 0, byte QualityStringLen = 8)
+		: base(nodeId == "" ? "1:g:54bd4120-967e-45ed-98e1-9d67b89f1df1" : nodeId, directory == "" ? "/sys/plugins/modbus/slave" : directory, name == "" ? "ModbusMapperBase" : name, Element == "" ? "ModbusMapperBase" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.Address = Address;this.QualityType = QualityType;this.QualityAddressType = QualityAddressType;this.QualityAddress = QualityAddress;this.QualityBitOffset = QualityBitOffset;this.QualityStringLen = QualityStringLen;
+
+	}
+
 	public ushort Address { get; set; } = 0;
+	public sbyte QualityType { get; set; } = 0;
+	public sbyte QualityAddressType { get; set; } = 0;
+	public ushort QualityAddress { get; set; } = 0;
+	public byte QualityBitOffset { get; set; } = 0;
+	public byte QualityStringLen { get; set; } = 8;
 }
 [RxPlatformPortType(nodeId: "1:g:3da88e1b-d4e0-4fff-911d-978f2ee78c8d",  directory: "/sys/plugins/modbus/slave",  name: "ModbusSlaveConnection")]
 public class ModbusSlaveConnection : ApplicationPort
@@ -187,13 +252,19 @@ public class ModbusSlaveRelation : PortReference
 	}
 
 }
-[RxPlatformMapperType(nodeId: "1:g:ebed32f7-1231-4ea2-852d-653a2be13ac5",  directory: "/sys/plugins/modbus/slave",  name: "ModbusStructMapper")]
 public class ModbusStructMapper : ExternStructuralMapper
 {
+	public ModbusStructMapper(string nodeId = "", string directory = "", string name = "", string Element = "", bool Write = false, bool Read = true, bool Sim = false, bool Proc = true, ushort InputRegAddress = 0, ushort InputAddress = 0, ushort HoldingRegAddress = 0, ushort CoilAddress = 0)
+		: base(nodeId == "" ? "1:g:ebed32f7-1231-4ea2-852d-653a2be13ac5" : nodeId, directory == "" ? "/sys/plugins/modbus/slave" : directory, name == "" ? "ModbusStructMapper" : name, Element == "" ? "ModbusStructMapper" : Element, Write : Write, Read: Read, Sim: Sim, Proc: Proc)
+	{
+		this.InputRegAddress = InputRegAddress;this.InputAddress = InputAddress;this.HoldingRegAddress = HoldingRegAddress;this.CoilAddress = CoilAddress;
+
+	}
+
 	public ushort InputRegAddress { get; set; } = 0;
 	public ushort InputAddress { get; set; } = 0;
 	public ushort HoldingRegAddress { get; set; } = 0;
 	public ushort CoilAddress { get; set; } = 0;
 }
 }
-// Generated on:Monday, April 6, 2026  9:13:08 AM
+// Generated on:Friday, September 25, 2026  8:51:04 AM

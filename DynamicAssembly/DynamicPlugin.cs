@@ -31,15 +31,15 @@ namespace DynamicAssembly
         {
             //var temp = new DynamicStruct();
 
-            //// /* just temporary excluded for testing
-            //var stack = ModbusUtility.CreateModbusTcpSlaves(502, new byte[] { 1, 2, 3 });
-            //stack.TcpPort.Timeouts.ReceiveTimeout = 60000;
-            //await ModbusUtility.DownloadStack(stack, "Test1", "ports", Assembly.GetExecutingAssembly());
+            // /* just temporary excluded for testing
+            var stack = ModbusUtility.CreateModbusTcpSlaves(502, new byte[] { 1, 2, 3 });
+            stack.TcpPort.Timeouts.ReceiveTimeout = 60000;
+            await ModbusUtility.DownloadStack(stack, "Test1", Assembly.GetExecutingAssembly(), "ports");
 
 
-            //var masterStack = ModbusUtility.CreateModbusTcpMasters("127.0.0.1", 502, new byte[] { 2 });
-            //masterStack.TcpPort.Timeouts.ReceiveTimeout = 60000;
-            //await ModbusUtility.DownloadStack(masterStack, "Test1Master", "ports", Assembly.GetExecutingAssembly());
+            var masterStack = ModbusUtility.CreateModbusTcpMasters("127.0.0.1", 502, new byte[] { 2 });
+            masterStack.TcpPort.Timeouts.ReceiveTimeout = 60000;
+            await ModbusUtility.DownloadStack(masterStack, "Test1Master", Assembly.GetExecutingAssembly(), "ports");
 
 
             //var opcServerStack = OPCUAUtility.CreateOPCUAServer(
@@ -88,7 +88,7 @@ namespace DynamicAssembly
 
 
             // */
-            
+
             Task task = new Task(async () =>
             {
                 {

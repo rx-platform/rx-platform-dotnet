@@ -72,9 +72,9 @@ These types can be created in C# using classes decorated with appropriate attrib
 For example, the following C# class defines a struct with various data types:
 ```csharp
 using ENSACO.RxPlatform.Attributes;
-namespace TestingPlatform
+namespace TestFacility
 {
-    [RxPlatformDataType(nodeId: "B1C2D3E4-F5A6-4789-ABCD-0987654321BA")]
+    [RxPlatformDataType(nodeId: "B1C2D3E4-F5A6-4789-ABCD-0987654321BA", directory: "data")]
     [RxPlatformDeclare()]
     public struct SensorData
     {
@@ -82,7 +82,7 @@ namespace TestingPlatform
         public double Hysteresis { get; set; }
     }
 
-    [RxPlatformDataType(nodeId: "A1B2C3D4-E5F6-4789-ABCD-1234567890AB")]
+    [RxPlatformDataType(nodeId: "A1B2C3D4-E5F6-4789-ABCD-1234567890AB", directory: "data")]
     [RxPlatformDeclare()]
     public class HeaterOptions
     {
@@ -137,23 +137,16 @@ ___
 
 This part of the manual describes the mapping between **```{rx-platform}```** data types and .NET Core types.
 
+This will enable you to define your own runtime objects inside platform using C# class definitions, 
+and also to create runtime objects inside platform from your C# code during runtime execution.
+
 Every runtime object inside platform is created by the platform callback itself during runtime execution.
-
-The reflection based analysis of the object class actually creates dynamic type derived from your class definition. 
-This enables platform to override properties and methods as needed based on the class definition.
-
-When you request creation of the object type from code you actually get derived type
-created by the platform runtime:
 
 ```csharp
 Heater? heater = await RxPlatformObjectRuntime.CreateInstance<TestingPlatform.Heater>();
-// heater object type is TestingPlatform__rxImplementation.Heater
-Console.WriteLine(heater.GetType().FullName);
+// heater object type is now created and connected to the enviroment
 ```
-So basically your class definition is derived from platform runtime class which provides infrastructure
-and dynamic type that provides specific functionality you requested in class definition.
 
-This enables best runtime performance and full integration with platform runtime.
 This part of a manual covers two types of runtime entities inside platform _Object Type_ and _Struct Type_.
 
 Understanding of these two types is most important when you model your application abstractions.
@@ -192,16 +185,15 @@ Initialization
 </h4>
 
 
-In order to initialize the runtime you can provide _Started_ and/or _Stopping_ methods inside your class.
+In order to initialize the runtime you can provide ```className```***Started*** and/or ```className```***Stopping*** methods inside your class.
 These methods have the following characteristics:
-  - virtual
   - non-static
   - ```void``` return type
   - zero arguments
 
-After creation of the runtime object platform will call the _Started_ method after all properties are initialized.
+After creation of the runtime object platform will call the ```className```***Started*** method after all properties are initialized.
 These methods can be used to perform any additional initialization and/or de initialization needed for the object.
-Before object destruction platform will call the _Stopping_ method.
+Before object destruction platform will call the ```className```***Stopping*** method.
 
 _Started_ and _Stopping_ methods are optional and can be async, but
 it is important to notice that after _Stopping_ method is started the platform will destroy runtime immediately.
@@ -209,17 +201,17 @@ it is important to notice that after _Stopping_ method is started the platform w
 This is shown on the example bellow
 ```csharp
 using ENSACO.RxPlatform.Attributes;
-namespace TestingPlatform
+namespace TestFacility
 {
     [RxPlatformObjectType(nodeId: "801A1925-092E-4053-BB69-A1B8C9838C41")]
     [RxPlatformRuntime()]
-    class Heater : RxPlatformObjectRuntime
+    public class Heater : RxPlatformObjectRuntime
     {
-        public void Started()
+        public void HeaterStarted()
         {
             // perform initialization
         }
-        public void Stopping()
+        public void HeaterStopping()
         {
             // perform de-initialization
         }
@@ -234,7 +226,6 @@ Constant Items
 ```constant```
 items are used to create interface for platform to see those values and to export them as needed.
 These are mapped from properties that have the following characteristics:
-  - non-virtual
   - non-static 
   - property type is plain type
   - property type is complex data type
@@ -254,8 +245,7 @@ It is important to notice that when properties are overridden by runtime the sta
 so reading the property directly from C# code will not provide the correct value.
 Also reading and writing properties operation will be thread safe.
 
-  - **C# properties** 
-      that are mapped are the one having the following characteristics:
+  - **C# properties** that are mapped are the one having the following characteristics:
     - virtual
     - non-static
     - property type is null-able
@@ -295,46 +285,49 @@ to enable sequential writes one must ```await``` every write.
 
 This is shown on the example bellow:
 ```csharp
-[RxPlatformObjectType(nodeId: "801A1925-092E-4053-BB69-A1B8C9838C41")]
-[RxPlatformRuntime()]
-class Heater : RxPlatformObjectRuntime
+namespace TestFacility
 {
-
-    public virtual double? SetPoint { get; set; } = 20.0;
-    public virtual bool? Start { get; set; } = false;
-
-    public virtual Task<bool> WriteSetPoint(double newValue)
+    [RxPlatformObjectType(nodeId: "801A1925-092E-4053-BB69-A1B8C9838C41")]
+    [RxPlatformRuntime()]
+    class Heater : RxPlatformObjectRuntime
     {
-        return Task.FromResult(false);
-    }
-    public virtual Task<bool> WriteStart(bool newValue)
-    {
-        return Task.FromResult(false);
-    }
 
-    public virtual event Action<double>? OnSetPointChange;
-}
+        public virtual double? SetPoint { get; set; } = 20.0;
+        public virtual bool? Start { get; set; } = false;
 
-// usage of the WriteSetPoint and WriteStart methods
-class HeaterStarter
-{
-    public override async Task<bool> StartHeating(Heater obj, double temp)
-    {
-        obj.OnSetPointChange += (newValue) =>
+        public virtual Task<bool> WriteSetPoint(double newValue)
         {
-            Console.WriteLine($"Heater: OnSetPointChange event fired. New Value: {newValue}");
-        };
-        if(obj.SetPoint!=temp)
-        {
-            // perform write operation for setting the set-point
-            if(!await obj.WriteSetPoint(temp))
-            {
-                // was unable to set endpoint
-                return false;
-            }
+            return Task.FromResult(false);
         }
-        // after success write start to turn on the heating
-        return await obj.WriteStart(true);
+        public virtual Task<bool> WriteStart(bool newValue)
+        {
+            return Task.FromResult(false);
+        }
+
+        public virtual event Action<double?>? OnSetPointChange;
+    }
+
+    // usage of the WriteSetPoint and WriteStart methods
+    class HeaterStarter
+    {
+        public async Task<bool> StartHeating(Heater obj, double temp)
+        {
+            obj.OnSetPointChange += (newValue) =>
+            {
+                Console.WriteLine($"Heater: OnSetPointChange event fired. New Value: {newValue}");
+            };
+            if(obj.SetPoint!=temp)
+            {
+                // perform write operation for setting the set-point
+                if(!await obj.WriteSetPoint(temp))
+                {
+                    // was unable to set endpoint
+                    return false;
+                }
+            }
+            // after success write start to turn on the heating
+            return await obj.WriteStart(true);
+        }
     }
 }
 ```
@@ -347,7 +340,7 @@ Struct Items
 ```struct```
 items are recursive structure that can contain _Constant Items_, _Value Items_ or other _Struct Items_.
 They are mapped from properties that have the following characteristics:
-  - non-virtual
+  - virtual
   - non-static
   - property type is of class decorated with
     ```RxPlatformStructType``` and ```RxPlatformDeclare``` attributes
@@ -448,7 +441,7 @@ class Heater : RxPlatformObjectRuntime
     // overridden by platform runtime to provide access to platform defined methods 
     // so you can call it from code to access functionality defined by field devices
     [RxPlatformAbstractMethod]
-    public virtual async Task PerformDiagnostics()
+    public virtual Task PerformDiagnostics()
     {
         return Task.CompletedTask;
     }
@@ -536,7 +529,7 @@ class Heater : RxPlatformObjectRuntime
     }
     
 
-    public void Started()
+    public void HeaterStarted()
     {
         OnWaterPumpConnected += (pump) =>
         {
@@ -583,7 +576,7 @@ namespace TestingPlatform
             HeaterStarter starter = new HeaterStarter();
             await starter.StartHeating(this, DefaultSetPoint);
         }
-        public virtual async Task PerformDiagnostics()
+        public virtual Task PerformDiagnostics()
         {
             return Task.CompletedTask;
         }

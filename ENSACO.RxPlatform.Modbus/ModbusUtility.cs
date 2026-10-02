@@ -75,7 +75,7 @@ namespace ENSACO.RxPlatform.Modbus
                 Slaves = slaves
             };
         }
-        public async static Task DownloadStack(ModbusTcpSlaveStack slave, string prefix, string path, Assembly assembly)
+        public async static Task DownloadStack(ModbusTcpSlaveStack slave, string prefix, Assembly assembly, string path  = "")
         {
             if (slave.TcpPort != null)
             {
@@ -149,7 +149,7 @@ namespace ENSACO.RxPlatform.Modbus
                 Slaves = slaves
             };
         }
-        public async static Task DownloadStack(ModbusTcpMasterStack master, string prefix, string path, Assembly assembly)
+        public async static Task DownloadStack(ModbusTcpMasterStack master, string prefix, Assembly assembly, string path = "")
         {
             if (master.TcpPort != null)
             {

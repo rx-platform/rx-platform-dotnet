@@ -6,19 +6,53 @@ using ENSACO.RxPlatform.Hosting.Reflection;
 using ENSACO.RxPlatform.Model;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json.Nodes;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
 {
-
+    
     internal class RxItemsFill : IRxMetaAlgorithm
     {
-        private List<RxMetaItem>? GetItems(PropertyInfo[] properties, PropertyInfo[]? valueProperties, object instance)
+        private void FillVariableData(ref RxVariableConstructionData data, object[] attributes)
+        {
+            foreach (var attribute in attributes)
+            {
+                if (attribute is RxPlatformVariableSourceAttribute)
+                {
+                    var src = attribute as RxPlatformVariableSourceAttribute;
+                    if(src!=null)
+                        data.sourceAttributes.Add(src);
+                }
+                else if(attribute is RxPlatformVariableMapperAttribute)
+                {
+                    var src = attribute as RxPlatformVariableMapperAttribute;
+                    if (src != null)
+                        data.mapperAttributes.Add(src);
+                }
+                else if (attribute is RxPlatformFilterAttribute)
+                {
+                    var src = attribute as RxPlatformFilterAttribute;
+                    if (src != null)
+                        data.filterAttributes.Add(src);
+                }
+            }
+            string varName = data.GetVariableName();
+        }
+        private List<RxMetaItem>? GetItems(PropertyInfo[] properties, PropertyInfo[]? valueProperties, object instance, PlatformTypeBuildData buildData, ref JsonObject varInit)
         {
             var items = new List<RxMetaItem>();
             System.Diagnostics.Debug.Assert(valueProperties == null || valueProperties.Length == properties.Length);
             int idx = 0;
             foreach (var prop in properties)
             {
+                if(prop.GetCustomAttribute<RxPlatformIgnoreAttribute>(false) != null
+                    || prop.GetCustomAttribute<RxPlatformRelationAttribute>(false) != null)
+                {
+                    idx++;
+                    continue;
+                }
                 PropertyInfo valueProp = prop;
                 if (valueProperties != null)
                 {
@@ -62,6 +96,22 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                 {
                     continue;
                 }
+                object[] attributes = prop.GetCustomAttributes(false);
+                RxVariableConstructionData data = new RxVariableConstructionData();
+
+                FillVariableData(ref data, attributes);
+
+                var varData = RxMetaExtracter.GetVariableType(data, buildData);
+                string? varId = null;
+                if (varData != null && !varData.Item1.IsNull())
+                {
+                    varId = varData.Item1.ToString();
+                    if(varData.Item2 != null)
+                    {
+                        varInit[prop.Name] = varData.Item2;
+                    }
+                }
+
                 var attr = propType.GetCustomAttribute<RxPlatformDataType>(false);
                 if (attr != null)
                 {
@@ -79,7 +129,20 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     }
                     if (!string.IsNullOrEmpty(targetId))
                     {
-                        if (!initOnly)
+
+                        if (!string.IsNullOrEmpty(varId))
+                        {
+                            RxHostBlockVariableItem item = new RxHostBlockVariableItem()
+                            {
+                                name = prop.Name,
+                                target = new RXHostReferenceId { id = varId },
+                                array = -1,
+                                ro = initOnly || !prop.CanWrite || hasPrivateSetter,
+                                datatype = new RXHostReferenceId { id = targetId },
+                            };
+                            items.Add(item);
+                        }
+                        else if (!initOnly)
                         {
                             RxHostPropBlockItem item = new RxHostPropBlockItem
                             {
@@ -108,6 +171,15 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     var structAttr = propType.GetCustomAttribute<RxPlatformStructType>(false);
                     if (structAttr != null)
                     {
+                        if(value!=null)
+                        {
+                            var attr1 = value.GetType().GetCustomAttribute<RxPlatformStructType>(false);
+                            if(attr1!= null)
+                            {
+                                structAttr = attr1;
+                            }
+                        }
+
                         string? targetId = null;
                         unsafe
                         {
@@ -213,7 +285,19 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                             }
                             else
                             {
-                                if (!initOnly)
+                                if (!string.IsNullOrEmpty(varId))
+                                {
+                                    RxHostVariableItem item = new RxHostVariableItem()
+                                    {
+                                        name = prop.Name,
+                                        target = new RXHostReferenceId { id = varId },
+                                        array = -1,
+                                        ro = initOnly || !prop.CanWrite || hasPrivateSetter
+                                    };
+                                    item.value = ReflectionHelpers.GetValue(prop, propType, value, array);
+                                    items.Add(item);
+                                }
+                                else if (!initOnly)
                                 {
                                     RxHostPropItem item = new RxHostPropItem
                                     {
@@ -357,7 +441,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                 data[kvp.Key] = objType;
             }
         }
-        private void FillTypes<T>(Dictionary<RxNodeId, PlatformTypeBuildMeta<T>> data) where T : RxPlatformTypeAttribute
+        private void FillTypes<T>(Dictionary<RxNodeId, PlatformTypeBuildMeta<T>> data, PlatformTypeBuildData buildData) where T : RxPlatformTypeAttribute
         {
             foreach (var kvp in data)
             {
@@ -386,14 +470,18 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     valProperties = ReflectionHelpers.GetSimplePropertyInfos(objType.type.MakeGenericType(new Type[] { typeof(int) }), true);
                 }
                 var props = ReflectionHelpers.GetSimplePropertyInfos(objType.type, true);
-                
-                var items = GetItems(props, valProperties, instance);
+                JsonObject varInit = new JsonObject();
+                var items = GetItems(props, valProperties, instance, buildData, ref varInit);
                 if(items==null)
                 {
                     objType.valid = false;
                     continue;
                 }
                 objType.items = items.ToArray();
+                if(varInit.Count>0)
+                {
+                    objType.VariableOverrideData = varInit;
+                }
                 data[kvp.Key] = objType;
             }
         }
@@ -401,18 +489,18 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
         {
             FillTypes(data.DataTypes);
 
-            FillTypes(data.EventTypes);
-            FillTypes(data.SourceTypes);
-            FillTypes(data.MapperTypes);
-            FillTypes(data.FilterTypes);
-            FillTypes(data.VariableTypes);
-            FillTypes(data.StructTypes);
-            FillTypes(data.DisplayTypes);
+            FillTypes(data.EventTypes, data);
+            FillTypes(data.SourceTypes, data);
+            FillTypes(data.MapperTypes, data);
+            FillTypes(data.FilterTypes, data);
+            FillTypes(data.VariableTypes, data);
+            FillTypes(data.StructTypes, data);
+            FillTypes(data.DisplayTypes, data);
 
-            FillTypes(data.ObjectTypes);
-            FillTypes(data.PortTypes);
-            FillTypes(data.DomainTypes);
-            FillTypes(data.ApplicationTypes);
+            FillTypes(data.ObjectTypes, data);
+            FillTypes(data.PortTypes, data);
+            FillTypes(data.DomainTypes, data);
+            FillTypes(data.ApplicationTypes, data);
 
         }
     }

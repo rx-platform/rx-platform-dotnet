@@ -378,27 +378,29 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
         }
 
-        static WeakDelegate<Action>? GetStartMethod(ref RuntimeConstructionData typeConstructor, RxPlatformRuntimeBase managedObj)
+        static WeakDelegate<Action>?[]? GetStartMethods(ref RuntimeConstructionData typeConstructor, RxPlatformRuntimeBase managedObj)
         {
-            if (typeConstructor.startMethod != null)
+            if (typeConstructor.startMethods != null)
             {
-                var del = new WeakDelegate<Action>(managedObj, typeConstructor.startMethod);
-                if (del != null)
+                var del = new WeakDelegate<Action>[typeConstructor.startMethods.Length];
+                for (int i = 0; i < typeConstructor.startMethods.Length; i++)
                 {
-                    return del;
+                    del[i] = new WeakDelegate<Action>(managedObj, typeConstructor.startMethods[i]);
                 }
+                return del;
             }
             return null;
         }
-        static WeakDelegate<Action>? GetStoppedMethod(ref RuntimeConstructionData typeConstructor, RxPlatformRuntimeBase managedObj)
+        static WeakDelegate<Action>?[]? GetStoppedMethods(ref RuntimeConstructionData typeConstructor, RxPlatformRuntimeBase managedObj)
         {
-            if (typeConstructor.stopMethod != null)
+            if (typeConstructor.stopMethods != null)
             {
-                var del = new WeakDelegate<Action>(managedObj, typeConstructor.stopMethod);
-                if (del != null)
+                var del = new WeakDelegate<Action>[typeConstructor.stopMethods.Length];
+                for (int i = 0; i < typeConstructor.stopMethods.Length; i++)
                 {
-                    return del;
+                    del[i] = new WeakDelegate<Action>(managedObj, typeConstructor.stopMethods[i]);
                 }
+                return del;
             }
             return null;
         }
@@ -419,16 +421,16 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 if (managedObj != null)
                 {
                     managedObj.__initSource = new TaskCompletionSource();
-                    WeakDelegate<Action>? startedMethod = GetStartMethod(ref typeConstructor, managedObj);
-                    WeakDelegate<Action>? stoppedMethod = GetStoppedMethod(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>?[]? startedMethods = GetStartMethods(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>?[]? stoppedMethods = GetStoppedMethods(ref typeConstructor, managedObj);
 
                     PlatformRuntimeData runtimeData = new PlatformRuntimeData
                     {
                         objectRuntime = GCHandle.Alloc(managedObj),
                         nativeRuntimePtr = nativePtr,
                         nodeId = nodeId,
-                        startedMethod = startedMethod,
-                        stoppedMethod = stoppedMethod,
+                        startedMethods = startedMethods,
+                        stoppedMethods = stoppedMethods,
                         path = path,
                         initCompleted = new TaskCompletionSource()
                     };
@@ -488,15 +490,15 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                     //    Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
                     //    managedObj.__rxStructDeserialize(ref reader);
                     //}
-                    WeakDelegate<Action>? startedMethod = GetStartMethod(ref typeConstructor, managedObj);
-                    WeakDelegate<Action>? stoppedMethod = GetStoppedMethod(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>?[]? startedMethods = GetStartMethods(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>?[]? stoppedMethods = GetStoppedMethods(ref typeConstructor, managedObj);
                     PlatformRuntimeData runtimeData = new PlatformRuntimeData
                     {
                         objectRuntime = GCHandle.Alloc(managedObj),
                         nativeRuntimePtr = nativePtr,
                         nodeId = nodeId,
-                        startedMethod = startedMethod,
-                        stoppedMethod = stoppedMethod,
+                        startedMethods = startedMethods,
+                        stoppedMethods = stoppedMethods,
                         path = path
                     };
 
@@ -554,15 +556,15 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                     //    Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
                     //    managedObj.__rxStructDeserialize(ref reader);
                     //}
-                    WeakDelegate<Action>? startedMethod = GetStartMethod(ref typeConstructor, managedObj);
-                    WeakDelegate<Action>? stoppedMethod = GetStoppedMethod(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>?[]? startedMethods = GetStartMethods(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>?[]? stoppedMethods = GetStoppedMethods(ref typeConstructor, managedObj);
                     PlatformRuntimeData runtimeData = new PlatformRuntimeData
                     {
                         objectRuntime = GCHandle.Alloc(managedObj),
                         nativeRuntimePtr = nativePtr,
                         nodeId = nodeId,
-                        startedMethod = startedMethod,
-                        stoppedMethod = stoppedMethod,
+                        startedMethods = startedMethods,
+                        stoppedMethods = stoppedMethods,
                         path = path
                     };
 
@@ -605,8 +607,8 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                 RxPlatformSourceRuntime? managedObj = typeConstructor.constructor(initialValues) as RxPlatformSourceRuntime;
                 if (managedObj != null)
                 {
-                    WeakDelegate<Action>? startedMethod = GetStartMethod(ref typeConstructor, managedObj);
-                    WeakDelegate<Action>? stoppedMethod = GetStoppedMethod(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>?[]? startedMethods = GetStartMethods(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>?[]? stoppedMethods = GetStoppedMethods(ref typeConstructor, managedObj);
 
                     bool[] types = new bool[Enum.GetValues(typeof(rx_value_t)).Length];
                     SourceWriteMethods sourceWrites = new SourceWriteMethods();
@@ -680,8 +682,8 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                         objectRuntime = GCHandle.Alloc(managedObj),
                         nativeRuntimePtr = nativePtr,
                         nodeId = nodeId,
-                        startedMethod = startedMethod,
-                        stoppedMethod = stoppedMethod,
+                        startedMethods = startedMethods,
+                        stoppedMethods = stoppedMethods,
                         sourceWriteMethods = sourceWrites,
                         handleRequests = null,
                         path = path
@@ -739,16 +741,16 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                     //    Utf8JsonReader reader = new Utf8JsonReader(typeConstructor.initialValues);
                     //    managedObj.__rxStructDeserialize(ref reader);
                     //}
-                    WeakDelegate<Action>? startedMethod = GetStartMethod(ref typeConstructor, managedObj);
-                    WeakDelegate<Action>? stoppedMethod = GetStoppedMethod(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>?[]? startedMethods = GetStartMethods(ref typeConstructor, managedObj);
+                    WeakDelegate<Action>?[]? stoppedMethods = GetStoppedMethods(ref typeConstructor, managedObj);
 
                     PlatformRuntimeData runtimeData = new PlatformRuntimeData
                     {
                         objectRuntime = GCHandle.Alloc(managedObj),
                         nativeRuntimePtr = nativePtr,
                         nodeId = nodeId,
-                        startedMethod = startedMethod,
-                        stoppedMethod = stoppedMethod,
+                        startedMethods = startedMethods,
+                        stoppedMethods = stoppedMethods,
                         path = path
                     };
 
@@ -990,20 +992,18 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 
         private static void CallStoppdMethods(ref PlatformRuntimeData rtData)
         {
-            if(rtData.stoppedMethod!=null)
+            if(rtData.stoppedMethods!=null)
             {
-                var stoppedDelegate = rtData.stoppedMethod.GetDelegate();
-                stoppedDelegate?.Invoke();
+                for(int i = rtData.stoppedMethods.Length - 1; i >= 0; i--)
+                {
+                    var stop = rtData.stoppedMethods[i];
+                    if(stop != null)
+                    {
+                        var stoppedDelegate = stop.GetDelegate();
+                        stoppedDelegate?.Invoke();
+                    }
+                }
             }
-            //if (rtData.stoppedMethods != null && rtData.stoppedMethods.Count > 0)
-            //{
-            //    for(int i = rtData.stoppedMethods.Count - 1; i >= 0; i--)
-            //    {
-            //        var stop = rtData.stoppedMethods[i];
-            //        var stoppedDelegate = stop.GetDelegate();
-            //        stoppedDelegate?.Invoke();
-            //    }
-            //}
         }
 
         internal static RxPlatformObjectRuntime? GetInstance(nint instancePtr)

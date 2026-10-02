@@ -5,6 +5,7 @@ using ENSACO.RxPlatform.Hosting.Internal;
 using ENSACO.RxPlatform.Hosting.Model.Items;
 using ENSACO.RxPlatform.Model;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -220,6 +221,49 @@ namespace ENSACO.RxPlatform.Hosting.Model
             }
             return true;
         }
+
+        static string GetAttributeOverrides(ref JsonObject? VariableOverrideData, ref JsonObject? MethodOverrideData, string input) 
+        {
+            if (VariableOverrideData != null && VariableOverrideData.Count > 0
+                    || MethodOverrideData != null && MethodOverrideData.Count > 0)
+            {
+                var varNode = JsonNode.Parse(input) as JsonObject;
+                if (varNode == null)
+                    varNode = new JsonObject();
+
+                if (MethodOverrideData != null)
+                {
+                    foreach (var one in MethodOverrideData)
+                    {
+                        var clone = one.Value.Deserialize<JsonNode>();
+                        if (clone != null)
+                        {
+                            varNode[one.Key] = clone;
+                        }
+                    }
+                }
+                if (VariableOverrideData != null)
+                {
+                    foreach (var one in VariableOverrideData)
+                    {
+                        var clone = one.Value.Deserialize<JsonNode>();
+                        if (clone != null)
+                        {
+                            if (varNode.ContainsKey(one.Key))
+                                clone["_"] = varNode[one.Key].DeepClone();
+                            varNode[one.Key] = clone;
+                        }
+                    }
+                }
+
+                MemoryStream memstm = new MemoryStream();
+                Utf8JsonWriter writer = new Utf8JsonWriter(memstm);
+                varNode.WriteTo(writer);
+                writer.Flush();
+                return Encoding.UTF8.GetString(memstm.ToArray());
+            }
+            return input;
+        }
         static bool GenerateObjectType(PlatformTypeBuildMeta<RxPlatformObjectType> type, HostedPlatformLibrary lib)
         {
 
@@ -240,6 +284,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
                     }
                 }
+                overrides = GetAttributeOverrides(ref type.VariableOverrideData, ref type.MethodOverrideData, overrides);
+
                 if (GenerateType(
                     codeInfo
                     , rx_item_type.rx_object_type
@@ -494,7 +540,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
             , RxFilterDataItem[]? filters
             , string connections
             , HostedPlatformLibrary lib
-            , RxNodeId argumentId)
+            , RxNodeId argumentId
+            , RxNodeId outArgumentId)
         {
 
 
@@ -571,7 +618,14 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 def += @",
     ""args"": { ""id"": """ + argumentId.ToString() + @""" }";
             }
-        def += @"
+            if (itemType == rx_item_type.rx_method_type)
+            {
+                def += @",
+    ""in"": { ""id"": """ + argumentId.ToString() + @""" }";
+                def += @",
+    ""out"": { ""id"": """ + outArgumentId.ToString() + @""" }";
+            }
+            def += @"
     }
 }";
 
@@ -627,6 +681,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
                     }
                 }
+                overrides = GetAttributeOverrides(ref type.VariableOverrideData, ref type.MethodOverrideData, overrides);
                 if (GenerateSimpleType(
                     type.runtimeType
                     , rx_item_type.rx_source_type
@@ -642,6 +697,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , type.filters
                     , type.runtimeConnections + "|" + type.initialValues
                     , lib
+                    , RxNodeId.NullId
                     , RxNodeId.NullId))
                     return false;//no changes
 
@@ -667,6 +723,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
                     }
                 }
+                overrides = GetAttributeOverrides(ref type.VariableOverrideData, ref type.MethodOverrideData, overrides);
+
                 if (GenerateSimpleType(
                     type.runtimeType
                     , rx_item_type.rx_source_type
@@ -682,6 +740,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , type.filters
                     , type.runtimeConnections + "|" + type.initialValues
                     , lib
+                    , RxNodeId.NullId
                     , RxNodeId.NullId))
                     return false;//no changes
 
@@ -734,6 +793,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
                     }
                 }
+                overrides = GetAttributeOverrides(ref type.VariableOverrideData, ref type.MethodOverrideData, overrides);
+
                 if (GenerateSimpleType(
                     type.runtimeType
                     , rx_item_type.rx_mapper_type
@@ -749,6 +810,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , type.filters
                     , type.runtimeConnections + "|" + type.initialValues
                     , lib
+                    , RxNodeId.NullId
                     , RxNodeId.NullId))
                     return false;//no changes
 
@@ -776,7 +838,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
             if (PlatformHostMain.api.BuildType == null)
                 throw new Exception("BuildType function is not available in the API.");
 
-            if (type.attribute != null && type.defaultConstructor != null && type.definedType)
+            if (type.attribute != null && type.definedType)
             {
                 string overrides = "{}";
                 if (type.defaultConstructor != null)
@@ -799,6 +861,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         }
                     }
                 }
+                overrides = GetAttributeOverrides(ref type.VariableOverrideData, ref type.MethodOverrideData, overrides);
+
                 if (GenerateSimpleType(
                     type.runtimeType
                     , rx_item_type.rx_variable_type
@@ -814,6 +878,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , type.filters
                     , type.runtimeConnections + "|" + type.initialValues
                     , lib
+                    , RxNodeId.NullId
                     , RxNodeId.NullId))
                     return false;//no changes
 
@@ -867,6 +932,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
                     }
                 }
+                overrides = GetAttributeOverrides(ref type.VariableOverrideData, ref type.MethodOverrideData, overrides);
+
                 if (GenerateSimpleType(
                     type.runtimeType
                     , rx_item_type.rx_event_type
@@ -882,7 +949,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , null //type.filters
                     , type.runtimeConnections + "|" + type.initialValues
                     , lib
-                    , argumentsId))
+                    , argumentsId
+                    , RxNodeId.NullId))
                     return false;//no changes
 
                 type.valid = false;
@@ -919,6 +987,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
                     }
                 }
+                overrides = GetAttributeOverrides(ref type.VariableOverrideData, ref type.MethodOverrideData, overrides);
+
                 if (GenerateSimpleType(
                     type.runtimeType
                     , rx_item_type.rx_event_type
@@ -934,6 +1004,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , null //type.filters
                     , type.runtimeConnections + "|" + type.initialValues
                     , lib
+                    , RxNodeId.NullId
                     , RxNodeId.NullId))
                     return false;//no changes
 
@@ -971,6 +1042,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
                     }
                 }
+                overrides = GetAttributeOverrides(ref type.VariableOverrideData, ref type.MethodOverrideData, overrides);
+
                 if (GenerateSimpleType(
                     type.runtimeType
                     , rx_item_type.rx_struct_type
@@ -986,6 +1059,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     , null //type.filters
                     , type.runtimeConnections + "|" + type.initialValues
                     , lib
+                    , RxNodeId.NullId
                     , RxNodeId.NullId))
                     return false;//no changes
 
@@ -1006,6 +1080,63 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     data[kvp.Key] = eventType;
             }
         }
+        static bool GenerateMethodType(PlatformTypeBuildMeta<RxPlatformMethodType> type, HostedPlatformLibrary lib)
+        {
+
+            if (PlatformHostMain.api.BuildType == null)
+                throw new Exception("BuildType function is not available in the API.");
+
+            if (type.attribute != null && type.definedType)
+            {
+                string overrides = "{}";
+                if (type.defaultConstructor != null)
+                {
+                    var tempObj = type.defaultConstructor.Invoke(null);
+                    if (tempObj != null)
+                    {
+                        overrides = JsonSerializer.Serialize(tempObj, tempObj.GetType(), PlatformHostMain.JsonContext);
+                    }
+                }
+                overrides = GetAttributeOverrides(ref type.VariableOverrideData, ref type.MethodOverrideData, overrides);
+
+                RxNodeId argumentsId = RxNodeId.PlatformNode(HostPlatformIds.RX_CLASS_DATA_BASE_ID);
+
+                if (GenerateSimpleType(
+                    type.runtimeType
+                    , rx_item_type.rx_method_type
+                    , type.name
+                    , type.path
+                    , type.id
+                    , type.parentId
+                    , HostPlatformIds.RX_DOTNET_METHOD_TYPE_ID
+                    , overrides
+                    , type.items
+                    , type.sources
+                    , type.mappers
+                    , null //type.filters
+                    , type.runtimeConnections + "|" + type.initialValues
+                    , lib
+                    , argumentsId
+                    , argumentsId))
+                    return false;//no changes
+
+                type.valid = false;
+            }
+            return true;
+        }
+        static void GenerateMethodTypes(Dictionary<RxNodeId, PlatformTypeBuildMeta<RxPlatformMethodType>> data, HostedPlatformLibrary lib)
+        {
+            foreach (var kvp in data)
+            {
+                var methodType = kvp.Value;
+                if (!methodType.valid)
+                    continue;
+                if (!methodType.definedType)
+                    continue;
+                if (GenerateMethodType(methodType, lib))
+                    data[kvp.Key] = methodType;
+            }
+        }
         public static void GeneratePlatformTypes(PlatformTypeBuildData data, HostedPlatformLibrary lib)
         {
             GenerateDataTypes(data.DataTypes, lib);
@@ -1017,6 +1148,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
             GenerateFilterTypes(data.FilterTypes, lib);
             GenerateVariableTypes(data.VariableTypes, lib);
             GenerateStructTypes(data.StructTypes, lib);
+            GenerateMethodTypes(data.MethodTypes, lib);
 
             GenerateObjectTypes(data.ObjectTypes, lib);
             GeneratePortTypes(data.PortTypes, lib);

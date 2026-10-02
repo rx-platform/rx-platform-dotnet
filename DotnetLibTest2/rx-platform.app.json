@@ -1,0 +1,5 @@
+{
+  "RunAssemblies": [
+    "DotnetLibTest2.dll"
+  ]
+}

@@ -192,6 +192,10 @@ storage.user: "rx-config"
 # default is 31421
 http.port: 80
 
+# TCP/IP port that MQTT client is connecting to
+mqtt.broker_addr: "127.0.0.1"
+mqtt.broker_port: 1883
+
 ```
 Now you are ready to run the platform hosting your .NET Core application.
 You can do this using the following command:
@@ -321,9 +325,9 @@ To debug your application, follow these steps:
 ```bash
 rx-interactive
 ```
-4. Attach the debugger to the **```{rx-interactive}```** process:
-- In Visual Studio, go to `Debug` > `Attach to Process...`, select the **```{rx-interactive}```** process, and click `Attach`.
-- In Visual Studio Code, use the `Debug: Attach to Process` command from the Command Palette and select the **```{rx-interactive}```** process.
+4. Attach the debugger to the **```{rx-dotnet-wp}```** process:
+- In Visual Studio, go to `Debug` > `Attach to Process...`, select the **```{rx-dotnet-wp}```** process, and click `Attach`.
+- In Visual Studio Code, use the `Debug: Attach to Process` command from the Command Palette and select the **```{rx-dotnet-wp}```** process.
 4. Interact with your .NET Core application through the **```{rx-interactive}```** interactive console or HTTP API to trigger the breakpoints.
 5. When execution hits a breakpoints, you can inspect variables, step through code, and evaluate expressions as you would in a standard debugging session.
 
@@ -333,32 +337,6 @@ In order to apply the changes you need to update the assembly in the platform us
 dotnet -r meTesting
 ```
 Then you can reattach the debugger to the process and debug the new code.
-
-If restarting of a platform is not an issue you can define platform process to start when debug is activated.
-
-In Visual Studio you can set command line arguments in the project properties using the Launch Profiles section.
-Create new Executable profile named `rx-platform` with the following executable `rx-interactive.exe`.
-
-
-In Visual Studio Code you can create launch configuration as shown below:
-```json
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "rx-platform",
-            "type": "coreclr",
-            "request": "launch",
-            "program": "rx-interactive.exe",
-            "args": [ "" ],
-            "cwd": "${workspaceFolder}",
-            "stopAtEntry": false,
-            "internalConsoleOptions": "openOnSessionStart"
-        }
-    ]
-}
-```
-Place this configuration in the `.vscode/launch.json` file inside your project folder.
 
 You can also start platform from the terminal with additional debugging options enabled. 
 To activate the debugger on dotnet code startup use the command switch `dotnet-debug-break`:

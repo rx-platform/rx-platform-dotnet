@@ -17,9 +17,8 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
 {
     internal static class RxRuntimeExecuter
     {
-        static RxPlatformRuntimeBase? GetRuntime(rx_item_type type, nint whose, ref Action? started, ref Dictionary<string, object> childrenValues, ref RxNodeId id, ref TaskCompletionSource? initCompleted)
+        static RxPlatformRuntimeBase? GetRuntime(rx_item_type type, nint whose, ref List<Action> started, ref Dictionary<string, object> childrenValues, ref RxNodeId id, ref TaskCompletionSource? initCompleted)
         {
-            started = null;
             switch (type)
             {
                 case rx_item_type.rx_object:
@@ -36,12 +35,32 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     {
                                         id = obj.nodeId;
                                         initCompleted = obj.initCompleted;
-                                        if (obj.startedMethod != null)
+                                        if (obj.startedMethods != null)
                                         {
-                                            var del = obj.startedMethod.GetDelegate();
-                                            if (del != null)
+                                            foreach (var startedMethod in obj.startedMethods)
                                             {
-                                                started = del;
+                                                if (startedMethod != null)
+                                                {
+                                                    var del = startedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        started.Add(del);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (obj.stoppedMethods != null)
+                                        {
+                                            foreach (var stoppedMethod in obj.stoppedMethods)
+                                            {
+                                                if (stoppedMethod != null)
+                                                {
+                                                    var del = stoppedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        // Handle stopped delegate if needed
+                                                    }
+                                                }
                                             }
                                         }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(obj.nodeId, "", out var constructData) && constructData != null)
@@ -78,12 +97,32 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (sourceRuntime != null)
                                     {
                                         id = src.nodeId;
-                                        if (src.startedMethod != null)
+                                        if (src.startedMethods != null)
                                         {
-                                            var del = src.startedMethod.GetDelegate();
-                                            if (del != null)
+                                            foreach (var startedMethod in src.startedMethods)
                                             {
-                                                started = del;
+                                                if (startedMethod != null)
+                                                {
+                                                    var del = startedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        started.Add(del);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (src.stoppedMethods != null)
+                                        {
+                                            foreach (var stoppedMethod in src.stoppedMethods)
+                                            {
+                                                if (stoppedMethod != null)
+                                                {
+                                                    var del = stoppedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        // Handle stopped delegate if needed
+                                                    }
+                                                }
                                             }
                                         }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(src.nodeId, src.path, out var constructData) && constructData != null)
@@ -121,12 +160,32 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (structRuntime != null)
                                     {
                                         id = str.nodeId;
-                                        if (str.startedMethod != null)
+                                        if (str.startedMethods != null)
                                         {
-                                            var del = str.startedMethod.GetDelegate();
-                                            if (del != null)
+                                            foreach (var startedMethod in str.startedMethods)
                                             {
-                                                started = del;
+                                                if (startedMethod != null)
+                                                {
+                                                    var del = startedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        started.Add(del);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (str.stoppedMethods != null)
+                                        {
+                                            foreach (var stoppedMethod in str.stoppedMethods)
+                                            {
+                                                if (stoppedMethod != null)
+                                                {
+                                                    var del = stoppedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        // Handle stopped delegate if needed
+                                                    }
+                                                }
                                             }
                                         }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(str.nodeId, str.path, out var constructData) && constructData != null)
@@ -163,12 +222,32 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (objectRuntime != null)
                                     {
                                         id = map.nodeId;
-                                        if (map.startedMethod != null)
+                                        if (map.startedMethods != null)
                                         {
-                                            var del = map.startedMethod.GetDelegate();
-                                            if (del != null)
+                                            foreach (var startedMethod in map.startedMethods)
                                             {
-                                                started = del;
+                                                if (startedMethod != null)
+                                                {
+                                                    var del = startedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        started.Add(del);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (map.stoppedMethods != null)
+                                        {
+                                            foreach (var stoppedMethod in map.stoppedMethods)
+                                            {
+                                                if (stoppedMethod != null)
+                                                {
+                                                    var del = stoppedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        // Handle stopped delegate if needed
+                                                    }
+                                                }
                                             }
                                         }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(map.nodeId, map.path, out var constructData) && constructData != null)
@@ -205,12 +284,32 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (objectRuntime != null)
                                     {
                                         id = evt.nodeId;
-                                        if (evt.startedMethod != null)
+                                        if (evt.startedMethods != null)
                                         {
-                                            var del = evt.startedMethod.GetDelegate();
-                                            if (del != null)
+                                            foreach (var startedMethod in evt.startedMethods)
                                             {
-                                                started = del;
+                                                if (startedMethod != null)
+                                                {
+                                                    var del = startedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        started.Add(del);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (evt.stoppedMethods != null)
+                                        {
+                                            foreach (var stoppedMethod in evt.stoppedMethods)
+                                            {
+                                                if (stoppedMethod != null)
+                                                {
+                                                    var del = stoppedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        // Handle stopped delegate if needed
+                                                    }
+                                                }   
                                             }
                                         }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(evt.nodeId, evt.path, out var constructData) && constructData != null)
@@ -248,12 +347,32 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                                     if (objectRuntime != null)
                                     {
                                         id = evt.nodeId;
-                                        if (evt.startedMethod != null)
+                                        if (evt.startedMethods != null)
                                         {
-                                            var del = evt.startedMethod.GetDelegate();
-                                            if (del != null)
+                                            foreach (var startedMethod in evt.startedMethods)
                                             {
-                                                started = del;
+                                                if (startedMethod != null)
+                                                {
+                                                    var del = startedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        started.Add(del);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (evt.stoppedMethods != null)
+                                        {
+                                            foreach (var stoppedMethod in evt.stoppedMethods)
+                                            {
+                                                if (stoppedMethod != null)
+                                                {
+                                                    var del = stoppedMethod.GetDelegate();
+                                                    if (del != null)
+                                                    {
+                                                        // Handle stopped delegate if needed
+                                                    }
+                                                }
                                             }
                                         }
                                         if (RuntimeConstructAlgorithms.TryGetConstructionData(evt.nodeId, evt.path, out var constructData) && constructData != null)
@@ -546,7 +665,7 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
             }
             try
             {
-                Action? started = null;
+                List<Action> started = new List<Action>();
                 Dictionary<string, object> childrenValues = new Dictionary<string, object>();
                 RxNodeId id = RxNodeId.NullId;
                 TaskCompletionSource? initCompleted = null;
@@ -558,9 +677,12 @@ namespace ENSACO.RxPlatform.Hosting.Runtime
                         RuntimeConstructAlgorithms.RemoveFromConstructionData(id);
                     }
                     obj.__rxInitialValuesCallback(vals, childrenValues);
-                    if (started != null)
+                    if (started != null && started.Count > 0)
                     {
-                        started();
+                        foreach (var action in started)
+                        {
+                            action();
+                        }
                     }
                     initCompleted?.SetResult();
                 }

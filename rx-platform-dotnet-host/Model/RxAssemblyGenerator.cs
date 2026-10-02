@@ -33,6 +33,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     RxPlatformObject.Instance.WriteLogWarning("RxAssemblyGenerator.ConnectMapperType", 100
                         , $"Default constructor for runtime type {type.codeNamespace}.{type.name} not found.");
                 }
+                GetSystemMethods(dynamicType, ref type.startMethods, ref type.stopMethods);
             }
         }
         private static void ConnectEventType(string typeName, ref PlatformTypeBuildMeta<RxPlatformEventType> type, Assembly assembly)
@@ -46,6 +47,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     RxPlatformObject.Instance.WriteLogWarning("RxAssemblyGenerator.ConnectEventType", 100
                         , $"Default constructor for runtime type {type.codeNamespace}.{type.name} not found.");
                 }
+                GetSystemMethods(dynamicType, ref type.startMethods, ref type.stopMethods);
             }
         }
         private static void ConnectDisplayType(string typeName, ref PlatformTypeBuildMeta<RxPlatformDisplayType> type, Assembly assembly)
@@ -59,6 +61,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     RxPlatformObject.Instance.WriteLogWarning("RxAssemblyGenerator.ConnectDisplayType", 100
                         , $"Default constructor for runtime type {type.codeNamespace}.{type.name} not found.");
                 }
+                GetSystemMethods(dynamicType, ref type.startMethods, ref type.stopMethods);
             }
         }
         private static void ConnectSourceType(string typeName, ref PlatformTypeBuildMeta<RxPlatformSourceType> type, Assembly assembly)
@@ -72,6 +75,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     RxPlatformObject.Instance.WriteLogWarning("RxAssemblyGenerator.ConnectSourceType", 100
                         , $"Default constructor for runtime type {type.codeNamespace}.{type.name} not found.");
                 }
+                GetSystemMethods(dynamicType, ref type.startMethods, ref type.stopMethods);
             }
         }
 
@@ -86,6 +90,73 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     RxPlatformObject.Instance.WriteLogWarning("RxAssemblyGenerator.ConnectStructType", 100
                         , $"Default constructor for runtime type {type.codeNamespace}.{type.name} not found.");
                 }
+                GetSystemMethods(dynamicType, ref type.startMethods, ref type.stopMethods);
+            }
+        }
+        private static void GetSystemMethods(Type type, ref MethodInfo[]? started, ref MethodInfo[]? stopped)
+        {
+            List<MethodInfo> startMethods = new List<MethodInfo>();
+            List<MethodInfo> stoppedMethods = new List<MethodInfo>();
+            Type? currentType = type;
+            while (currentType != null
+                && currentType != typeof(object))
+            {
+                if (currentType.GetCustomAttribute<RxPlatformRuntimeAttribute>() != null)
+                {
+                    var info = currentType.GetMethod($"{currentType.Name}Started");
+                    if (info == null
+                        || info.ReturnType != typeof(void)
+                        || info.GetParameters().Length != 0)
+                    {
+                        RxPlatformObject.Instance.WriteLogTrace("RxAssemblyGenerator.ConnectObjectType", 100
+                        , $"Started method for runtime type {currentType.Namespace}.{currentType.Name} not found or has invalid return type.");
+                    }
+                    else
+                    {
+                        startMethods.Add(info);
+                    }
+                    info = currentType.GetMethod($"{currentType.Name}Stopping");
+                    if (info == null
+                        || info.ReturnType != typeof(void)
+                        || info.GetParameters().Length != 0)
+                    {
+                        RxPlatformObject.Instance.WriteLogTrace("RxAssemblyGenerator.ConnectObjectType", 100
+                            , $"Stopping method for runtime type {currentType.Namespace}.{currentType.Name} not found or has invalid return type.");
+                    }
+                    else
+                    {
+                        stoppedMethods.Add(info);
+                    }
+                }
+                currentType = currentType.BaseType;
+            }
+            ;
+            if (startMethods.Count > 0)
+            {
+                started = new MethodInfo[startMethods.Count];
+                int c = 0;
+                for (int i = startMethods.Count - 1; i >= 0; i--)
+                {
+                    started[c++] = startMethods[i];
+                }
+            }
+            else
+            {
+                started = null;
+            }
+
+            if (stoppedMethods.Count > 0)
+            {
+                stopped = new MethodInfo[stoppedMethods.Count];
+                int c = 0;
+                for (int i = stoppedMethods.Count - 1; i >= 0; i--)
+                {
+                    stopped[c++] = stoppedMethods[i];
+                }
+            }
+            else
+            {
+                stopped = null;
             }
         }
         private static void ConnectObjectType(string typeName, ref PlatformTypeBuildMeta<RxPlatformObjectType> type, Assembly assembly)
@@ -99,24 +170,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                     RxPlatformObject.Instance.WriteLogWarning("RxAssemblyGenerator.ConnectObjectType", 100
                         , $"Default constructor for runtime type {type.codeNamespace}.{type.name} not found.");
                 }
-                type.startMethod = dynamicType.GetMethod("Started");
-                if (type.startMethod == null
-                    || type.startMethod.ReturnType != typeof(void)
-                    || type.startMethod.GetParameters().Length != 0)
-                {
-                    RxPlatformObject.Instance.WriteLogTrace("RxAssemblyGenerator.ConnectObjectType", 100
-                        , $"Started method for runtime type {type.codeNamespace}.{type.name} not found or has invalid return type.");
-                    type.startMethod = null;
-                }
-                type.stopMethod = dynamicType.GetMethod("Stopping");
-                if (type.stopMethod == null
-                    || type.stopMethod.ReturnType != typeof(void)
-                    || type.stopMethod.GetParameters().Length != 0)
-                {
-                    RxPlatformObject.Instance.WriteLogTrace("RxAssemblyGenerator.ConnectObjectType", 100
-                        , $"Stopping method for runtime type {type.codeNamespace}.{type.name} not found or has invalid return type.");
-                    type.stopMethod = null;
-                }
+                GetSystemMethods(dynamicType, ref type.startMethods, ref type.stopMethods);
+
             }
         }
         private static void ConnectTypes(PlatformTypeBuildData tempData, Assembly assembly)

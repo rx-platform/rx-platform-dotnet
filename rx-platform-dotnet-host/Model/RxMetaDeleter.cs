@@ -109,6 +109,23 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         }
                     }
                 }
+
+                foreach (var typeName in types.methodTypes)
+                {
+                    if (RxMetaData.Instance.MethodTypes.TryGetValue(typeName, out var objType))
+                    {
+                        if (objType.Meta.whose == hostLib)
+                        {
+                            RxMetaData.Instance.MethodTypes.Remove(typeName);
+                            toDelete.Add(new DeletingTypeInfo
+                            {
+                                type = rx_item_type.rx_method_type,
+                                id = objType.Meta.id,
+                                fullPath = $"{objType.Meta.path}/{objType.Meta.name}"
+                            });
+                        }
+                    }
+                }
                 foreach (var typeName in types.structTypes)
                 {
                     if (RxMetaData.Instance.StructTypes.TryGetValue(typeName, out var objType))

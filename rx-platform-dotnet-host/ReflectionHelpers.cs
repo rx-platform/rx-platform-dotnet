@@ -6,9 +6,12 @@ using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using System.Xml.Linq;
 
 namespace ENSACO.RxPlatform.Hosting.Reflection
 {
@@ -56,6 +59,45 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                 }
                 else
                 {
+                    var document = JsonNode.Parse(initial) as JsonObject;
+                    if (document != null)
+                    {
+                        Dictionary<string, JsonNode> dict = new Dictionary<string, JsonNode>();
+
+                        foreach (var element in document)
+                        {
+                            var objNode = element.Value as JsonObject;
+                            if (objNode != null)
+                            {
+                                // Check if the object has a property named "_"
+                                if (objNode.TryGetPropertyValue("_", out var val))
+                                {
+                                    if (val != null)
+                                    {
+                                        var clone = val.Deserialize<JsonNode>();
+                                        if (clone != null)
+                                            dict[element.Key] = clone;
+                                    }
+                                }
+                            }
+                        }
+                        if (dict.Count > 0)
+                        {
+                            foreach (var one in dict)
+                            {
+                                document.Remove(one.Key);
+                            }
+                            foreach (var one in dict)
+                            {
+                                document[one.Key] = one.Value;
+                            }
+                            MemoryStream memstm = new MemoryStream();
+                            Utf8JsonWriter writer = new Utf8JsonWriter(memstm);
+                            document.WriteTo(writer);
+                            writer.Flush();
+                            initial = Encoding.UTF8.GetString(memstm.ToArray());
+                        }
+                    }
                     JsonSerializerOptions options = new JsonSerializerOptions
                     {
                         Converters = {
@@ -910,40 +952,6 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
             }
             return false;
         }
-        static internal PropertyInfo[] GetAllRelationsPropertyInfos(Type type)
-        {
-            List<PropertyInfo> ret = new List<PropertyInfo>();
-            var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            foreach (var prop in propertyInfos)
-            {
-                var ignoreAttr = prop.GetCustomAttribute<RxPlatformIgnoreAttribute>();
-                if (ignoreAttr != null)
-                {
-                    continue;
-                }
-                var relAttr = prop.GetCustomAttribute<RxPlatformRelationAttribute>();
-                if (relAttr != null)
-                {
-                    ret.Add(prop);
-                    continue;
-                }
-                if (!IsVirtual(prop))
-                {
-                    continue;
-                }
-                Type? propType = Nullable.GetUnderlyingType(prop.PropertyType);
-                if (propType == null)
-                {
-                    propType = prop.PropertyType;
-                }
-                if (propType != null && propType.IsSubclassOf(typeof(RxPlatformObjectRuntime)))
-                {
-                    ret.Add(prop);
-                    continue;
-                }
-            }
-            return ret.ToArray();
-        }
         static internal bool IsElemntToSkip(JsonPropertyInfo type)
         {
             Type? propType = Nullable.GetUnderlyingType(type.PropertyType);
@@ -1422,22 +1430,22 @@ namespace ENSACO.RxPlatform.Hosting.Reflection
                 {
                     continue;
                 }
-                if (method.IsSpecialName || method.Name == "Started" || method.Name == "Stopping")
+                if (method.IsSpecialName || method.Name == $"{type.Name}Started" || method.Name == $"{type.Name}Stopping")
                 {
                     continue;
                 }
-                bool hasPlatformMethodAttr = method.GetCustomAttribute<RxPlatformMethodType>() != null;
+                bool isAbstract = method.GetCustomAttribute<RxPlatformAbstractMethod>() != null;
                 if (own)
                 {
-                    if(hasPlatformMethodAttr)
+                    if (isAbstract)
                         continue;
                 }
-                else 
-                {
-                    if (!hasPlatformMethodAttr || !method.IsVirtual)
+                else
+                {                    
+                    if (!isAbstract || !method.IsVirtual)
                         continue;
                 }
-                
+
                 Type? paramType = null;
                 Type? returnType = null;
                 var parmsInfo = method.GetParameters();

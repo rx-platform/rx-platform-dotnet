@@ -104,38 +104,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                 objType.sources = new RxSourceDataItem[0];
                 if (objType.runtimeType)
                 {
-                    objType.codeNamespace = objType.type.Namespace;
-                    MethodInfo? startMethod = null;
-                    MethodInfo? stopMethod = null;
-
-                    var tempMethod = objType.type.GetMethod("Started");
-                    if (tempMethod == null
-                        || tempMethod.ReturnType != typeof(void)
-                        || tempMethod.GetParameters().Length != 0)
-                    {
-                        RxPlatformObject.Instance.WriteLogTrace("RxInitialDataFill", 100
-                            , $"Started method for runtime type {objType.path}/{objType.name} not found or has invalid return type.");
-                    }
-                    else
-                    {
-                        startMethod = tempMethod;
-                    }
-
-                    tempMethod = objType.type.GetMethod("Stopping");
-                    if (tempMethod == null
-                        || tempMethod.ReturnType != typeof(void)
-                        || tempMethod.GetParameters().Length != 0)
-                    {
-                        RxPlatformObject.Instance.WriteLogTrace("PlatformRuntimeTypes.BuildPlatformTypes", 100
-                            , $"Stopping method for runtime type {objType.path}/{objType.name} not found or has invalid return type.");
-                    }
-                    else
-                    {
-                        stopMethod = tempMethod;
-                    }
-                    objType.codeNamespace = objType.type.Namespace;
-                    objType.startMethod = startMethod;
-                    objType.stopMethod = stopMethod;
+                    objType.codeNamespace = objType.type.Namespace;                    
 
                 }
                 data[kvp.Key] = objType;
@@ -178,7 +147,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                 MethodInfo? startMethod = null;
                 MethodInfo? stopMethod = null;
 
-                var tempMethod = objType.type.GetMethod("Started");
+                var tempMethod = objType.type.GetMethod($"{objType.type.Name}Started");
                 if (tempMethod == null
                     || tempMethod.ReturnType != typeof(void)
                     || tempMethod.GetParameters().Length != 0)
@@ -191,7 +160,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     startMethod = tempMethod;
                 }
 
-                tempMethod = objType.type.GetMethod("Stopping");
+                tempMethod = objType.type.GetMethod($"{objType.type.Name}Stopping");
                 if (tempMethod == null
                     || tempMethod.ReturnType != typeof(void)
                     || tempMethod.GetParameters().Length != 0)

@@ -4,6 +4,7 @@ using ENSACO.RxPlatform.Hosting.Model.Algorithms;
 using ENSACO.RxPlatform.Hosting.Model.Items;
 using ENSACO.RxPlatform.Hosting.Reflection;
 using ENSACO.RxPlatform.Model;
+using ENSACO.RxPlatform.Model.System;
 using ENSACO.RxPlatform.Runtime;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.IO;
@@ -11,6 +12,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Xml.Linq;
 
 namespace ENSACO.RxPlatform.Hosting.Model
@@ -31,6 +33,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
         internal List<RxNodeId> displayTypes;
 
         internal List<RxNodeId> dataTypes;
+        internal List<RxNodeId> methodTypes;
     }
     internal static class RxMetaExtracter
     {
@@ -84,8 +87,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 definedType = defined,
                 runtimeType = runtime,
                 runtimeConstructor = null,
-                startMethod = null,
-                stopMethod = null,
+                startMethods = null,
+                stopMethods = null,
                 whose = hostLib,
                 valid = true,
                 type = type,
@@ -178,8 +181,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 Meta = new PlatformTypeMeta<T>()
                 {
                     whose = buildMeta.whose,
-                    startMethod = buildMeta.startMethod,
-                    stopMethod = buildMeta.stopMethod,
+                    startMethods = buildMeta.startMethods,
+                    stopMethods = buildMeta.stopMethods,
                     path = buildMeta.path,
                     name = buildMeta.name,
                     id = buildMeta.id,
@@ -390,6 +393,13 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         RxMetaData.Instance.VariableTypes.Add(kvp.Key
                             , ConvertData<RxPlatformVariableType>(kvp.Value));
                     }
+                    foreach (var kvp in tempData.MethodTypes)
+                    {
+                        if (!kvp.Value.valid)
+                            continue;
+                        RxMetaData.Instance.MethodTypes.Add(kvp.Key
+                            , ConvertData<RxPlatformMethodType>(kvp.Value));
+                    }
                     foreach (var kvp in tempData.SourceTypes)
                     {
                         if (!kvp.Value.valid)
@@ -432,6 +442,153 @@ namespace ENSACO.RxPlatform.Hosting.Model
             }
             return false;
         }
+
+        internal static Tuple<RxNodeId, JsonObject?> GetMethodType(RxMethodConstructionData data, PlatformTypeBuildData buildData)
+        {
+            if (data.mapperAttributes.Count == 0)
+            {
+                return new Tuple<RxNodeId, JsonObject?>(RxNodeId.NullId, null);
+            }
+            JsonObject metInit = data.GetInitData();
+            string name = data.GetMethodName();
+            if (buildData.InstancedMethods.TryGetValue(name, out var typeData))
+            {
+                return new Tuple<RxNodeId, JsonObject?>(typeData, metInit);
+            }
+            Guid newId = Guid.NewGuid();
+            List<RxMapperDataItem> mappers = new List<RxMapperDataItem>();
+
+            foreach (var map in data.mapperAttributes)
+            {
+                mappers.Add(new RxMapperDataItem
+                {
+                    name = map.Element,
+                    target = new RXHostReferenceId { id = map.NodeId.ToString() ?? "" },
+                    access = new RxAccessInfo(),
+                    write = map.Write,
+                    read = map.Read,
+                    sim = map.Sim,
+                    proc = map.Proc,
+
+                });
+            }
+            // create one
+            PlatformTypeBuildMeta<RxPlatformMethodType> typeBuildMeta = new PlatformTypeBuildMeta<RxPlatformMethodType>
+            {
+                id = new RxNodeId(newId, 99),
+                path = $"/sys/dotnet/methods",
+                name = name,
+                defaultConstructor = null,
+                attribute = new RxPlatformMethodType(
+                    nodeId: newId.ToString()),
+                definedType = true,
+                runtimeType = false,
+                runtimeConstructor = null,
+                startMethods = null,
+                stopMethods = null,
+                whose = null,
+                valid = true,
+                items = [],
+                mappers = mappers.ToArray(),
+                parentId = new RxNodeId(HostPlatformIds.RX_DOTNET_METHOD_TYPE_ID, 1)
+            };
+            buildData.MethodTypes.Add(typeBuildMeta.id, typeBuildMeta);
+            buildData.InstancedMethods.Add(name, typeBuildMeta.id);
+
+            return new Tuple<RxNodeId, JsonObject?>(typeBuildMeta.id, metInit);
+        }
+        internal static Tuple<RxNodeId, JsonObject?> GetVariableType(RxVariableConstructionData data, PlatformTypeBuildData buildData)
+        {
+            if(data.sourceAttributes.Count == 0 && data.mapperAttributes.Count == 0 && data.filterAttributes.Count == 0)
+            {
+                return new Tuple<RxNodeId, JsonObject?>(RxNodeId.NullId, null);
+            }
+            if(data.sourceAttributes.Count == 0)
+            {// add register source for the variable if it has no sources
+                data.sourceAttributes.Add(new RegisterSource(Output: true));
+            }
+            JsonObject varInit = data.GetInitData();
+            string name = data.GetVariableName();
+            if (buildData.InstancedVariables.TryGetValue(name, out var typeData))
+            {
+                return new Tuple<RxNodeId, JsonObject?>(typeData, varInit);
+            }
+            Guid newId = Guid.NewGuid();
+            List<RxSourceDataItem> sources = new List<RxSourceDataItem>();
+            List<RxMapperDataItem> mappers = new List<RxMapperDataItem>();
+            List<RxFilterDataItem> filters = new List<RxFilterDataItem>();
+
+            foreach (var src in data.sourceAttributes)
+            {
+                sources.Add(new RxSourceDataItem
+                {
+                    name = src.Element,
+                    target = new RXHostReferenceId { id = src.NodeId.ToString()?? ""},
+                    access = new RxAccessInfo(),
+                    input = src.Input,
+                    output = src.Output,
+                    sim = src.Sim,
+                    proc = src.Proc,
+
+                });
+            }
+            foreach (var map in data.mapperAttributes)
+            {
+                mappers.Add(new RxMapperDataItem
+                {
+                    name = map.Element,
+                    target = new RXHostReferenceId { id = map.NodeId.ToString() ?? "" },
+                    access = new RxAccessInfo(),
+                    write = map.Write,
+                    read = map.Read,
+                    sim = map.Sim,
+                    proc = map.Proc,
+
+                });
+            }
+            foreach (var filter in data.filterAttributes)
+            {
+                filters.Add(new RxFilterDataItem
+                {
+                    name = filter.Element,
+                    target = new RXHostReferenceId { id = filter.NodeId.ToString() ?? "" },
+                    access = new RxAccessInfo(),
+                    input = filter.Input,
+                    output = filter.Output,
+                    sim = filter.Sim,
+                    proc = filter.Proc,
+
+                });
+            }
+            // create one
+            PlatformTypeBuildMeta<RxPlatformVariableType> typeBuildMeta = new PlatformTypeBuildMeta<RxPlatformVariableType>
+            {
+                id = new RxNodeId(newId, 99),
+                path = $"/sys/dotnet/variables",
+                name = name,
+                defaultConstructor = null,
+                attribute = new RxPlatformVariableType(
+                    nodeId: newId.ToString(),
+                    name: name,
+                    directory: $"/sys/dotnet/variables"),
+                definedType = true,
+                runtimeType = false,
+                runtimeConstructor = null,
+                startMethods = null,
+                stopMethods = null,
+                whose = null,
+                valid = true,
+                items = [],
+                sources = sources.ToArray(),
+                mappers = mappers.ToArray(),
+                filters = filters.ToArray(),
+                parentId = new RxNodeId(HostPlatformIds.RX_SIMPLE_VARIABLE_TYPE_ID, 1)
+            };
+            buildData.VariableTypes.Add(typeBuildMeta.id, typeBuildMeta);
+            buildData.InstancedVariables.Add(name, typeBuildMeta.id);
+
+            return new Tuple<RxNodeId, JsonObject?>(typeBuildMeta.id, varInit);
+        }
         internal static LibraryPlatformTypes ParseAssembly(Assembly assembly, HostedPlatformLibrary hostLib)
         {
             LibraryPlatformTypes ret = new LibraryPlatformTypes
@@ -442,6 +599,7 @@ namespace ENSACO.RxPlatform.Hosting.Model
                 portTypes = new List<RxNodeId>(),
                 structTypes = new List<RxNodeId>(),
                 mapperTypes = new List<RxNodeId>(),
+                methodTypes = new List<RxNodeId>(),
                 variableTypes = new List<RxNodeId>(),
                 sourceTypes = new List<RxNodeId>(),
                 eventTypes = new List<RxNodeId>(),
@@ -491,8 +649,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             RuntimeConstructionData data = new RuntimeConstructionData
                             {
                                 constructor = kvp.Value.runtimeConstructor,
-                                startMethod = kvp.Value.startMethod,
-                                stopMethod = kvp.Value.stopMethod,
+                                startMethods = kvp.Value.startMethods,
+                                stopMethods = kvp.Value.stopMethods,
                                 initialValues = initialValues
                             };
                             RxMetaData.Instance.ObjectRuntimes.RegisteredConstructors.Add(kvp.Key, data);
@@ -549,8 +707,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             RuntimeConstructionData data = new RuntimeConstructionData
                             {
                                 constructor = kvp.Value.runtimeConstructor,
-                                startMethod = kvp.Value.startMethod,
-                                stopMethod = kvp.Value.stopMethod,
+                                startMethods = kvp.Value.startMethods,
+                                stopMethods = kvp.Value.stopMethods,
                                 initialValues = initialValues
                             };
                             RxMetaData.Instance.StructRuntimes.RegisteredConstructors.Add(kvp.Key, data);
@@ -581,8 +739,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             RuntimeConstructionData data = new RuntimeConstructionData
                             {
                                 constructor = kvp.Value.runtimeConstructor,
-                                startMethod = kvp.Value.startMethod,
-                                stopMethod = kvp.Value.stopMethod,
+                                startMethods = kvp.Value.startMethods,
+                                stopMethods = kvp.Value.stopMethods,
                                 initialValues = initialValues
                             };
                             RxMetaData.Instance.MapperRuntimes.RegisteredConstructors.Add(kvp.Key, data);
@@ -595,6 +753,15 @@ namespace ENSACO.RxPlatform.Hosting.Model
                         ret.variableTypes.Add(kvp.Key);
                         RxMetaData.Instance.VariableTypes.Add(kvp.Key
                             , ConvertData<RxPlatformVariableType>(kvp.Value));
+                    }
+
+                    foreach (var kvp in tempData.MethodTypes)
+                    {
+                        if (!kvp.Value.valid)
+                            continue;
+                        ret.methodTypes.Add(kvp.Key);
+                        RxMetaData.Instance.MethodTypes.Add(kvp.Key
+                            , ConvertData<RxPlatformMethodType>(kvp.Value));
                     }
                     foreach (var kvp in tempData.SourceTypes)
                     {
@@ -621,8 +788,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             RuntimeConstructionData data = new RuntimeConstructionData
                             {
                                 constructor = kvp.Value.runtimeConstructor,
-                                startMethod = kvp.Value.startMethod,
-                                stopMethod = kvp.Value.stopMethod,
+                                startMethods = kvp.Value.startMethods,
+                                stopMethods = kvp.Value.stopMethods,
                                 sourceWriteMethods = kvp.Value.sourceWriteMethods,
                                 initialValues = initialValues
                             };
@@ -654,8 +821,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             RuntimeConstructionData data = new RuntimeConstructionData
                             {
                                 constructor = kvp.Value.runtimeConstructor,
-                                startMethod = kvp.Value.startMethod,
-                                stopMethod = kvp.Value.stopMethod,
+                                startMethods = kvp.Value.startMethods,
+                                stopMethods = kvp.Value.stopMethods,
                                 initialValues = initialValues
                             };
                             RxMetaData.Instance.EventRuntimes.RegisteredConstructors.Add(kvp.Key, data);
@@ -687,8 +854,8 @@ namespace ENSACO.RxPlatform.Hosting.Model
                             RuntimeConstructionData data = new RuntimeConstructionData
                             {
                                 constructor = kvp.Value.runtimeConstructor,
-                                startMethod = kvp.Value.startMethod,
-                                stopMethod = kvp.Value.stopMethod,
+                                startMethods = kvp.Value.startMethods,
+                                stopMethods = kvp.Value.stopMethods,
                                 initialValues = initialValues
                             };
                             RxMetaData.Instance.DisplayRuntimes.RegisteredConstructors.Add(kvp.Key, data);

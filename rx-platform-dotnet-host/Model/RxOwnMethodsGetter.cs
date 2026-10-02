@@ -7,15 +7,30 @@ using ENSACO.RxPlatform.Hosting.Model.Items;
 using ENSACO.RxPlatform.Hosting.Reflection;
 using ENSACO.RxPlatform.Model;
 using ENSACO.RxPlatform.Runtime;
+using Microsoft.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
+using System.Text.Json.Nodes;
 
 namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
 {
     internal class RxOwnMethodsGetter : IRxMetaAlgorithm
     {
-        private Tuple<List<RxMethodDataItem>, List<RxOwnMethodCodeData>>? GetItems(MethodInfo[] methods, object instance)
+        private void FillMethodData(ref RxMethodConstructionData data, object[] attributes)
+        {
+            foreach (var attribute in attributes)
+            {
+                if (attribute is RxPlatformMethodMapperAttribute)
+                {
+                    var src = attribute as RxPlatformMethodMapperAttribute;
+                    if (src != null)
+                        data.mapperAttributes.Add(src);
+                }
+            }
+            string varName = data.GetMethodName();
+        }
+        private Tuple<List<RxMethodDataItem>, List<RxOwnMethodCodeData>>? GetItems(MethodInfo[] methods, object instance, PlatformTypeBuildData buildData, ref JsonObject methodInit)
         {
             var items = new Tuple<List<RxMethodDataItem>, List<RxOwnMethodCodeData>>(new List<RxMethodDataItem>(), new List<RxOwnMethodCodeData>());
             foreach (var method in methods)
@@ -70,6 +85,22 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                         argIsJson = paramType.GetCustomAttribute<RxPlatformDataType>(false) != null;
                     }
                 }
+                object[] attributes = method.GetCustomAttributes(false);
+                RxMethodConstructionData data = new RxMethodConstructionData();
+
+                FillMethodData(ref data, attributes);
+
+                var methodData = RxMetaExtracter.GetMethodType(data, buildData);
+                string? methodId = null;
+                if (methodData != null && !methodData.Item1.IsNull())
+                {
+                    methodId = methodData.Item1.ToString();
+                    if (methodData.Item2 != null)
+                    {
+                        methodInit[method.Name] = methodData.Item2;
+                    }
+                }
+
                 resultType = method.ReturnType;
                 if (resultType != null)
                 {
@@ -158,17 +189,20 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                     if (nodeIdOut == null)
                         continue;
 
-                    string? targetIdStr = null;
-                    unsafe
+                    string? targetIdStr = methodId;
+                    if (targetIdStr == null)
                     {
-                        string_value_struct nodeIdStr;
-                        rx_node_id_struct nodeId = CommonInterface.CreateNodeIdFromInt(HostPlatformIds.RX_DOTNET_METHOD_TYPE_ID);
-                        if (CommonInterface.rx_node_id_to_string(&nodeId, &nodeIdStr) > 0)
+                        unsafe
                         {
-                            targetIdStr = Marshal.PtrToStringUTF8(CommonInterface.rx_c_str(&nodeIdStr));
-                            CommonInterface.rx_destory_string_value_struct(&nodeIdStr);
+                            string_value_struct nodeIdStr;
+                            rx_node_id_struct nodeId = CommonInterface.CreateNodeIdFromInt(HostPlatformIds.RX_DOTNET_METHOD_TYPE_ID);
+                            if (CommonInterface.rx_node_id_to_string(&nodeId, &nodeIdStr) > 0)
+                            {
+                                targetIdStr = Marshal.PtrToStringUTF8(CommonInterface.rx_c_str(&nodeIdStr));
+                                CommonInterface.rx_destory_string_value_struct(&nodeIdStr);
+                            }
+                            CommonInterface.rx_destory_node_id(&nodeId);
                         }
-                        CommonInterface.rx_destory_node_id(&nodeId);
                     }
                     if(targetIdStr == null)
                         continue;
@@ -203,7 +237,7 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
             }
             return items;
         }
-        private void FillTypes<T>(Dictionary<RxNodeId, PlatformTypeBuildMeta<T>> data) where T : RxPlatformTypeAttribute
+        private void FillTypes<T>(Dictionary<RxNodeId, PlatformTypeBuildMeta<T>> data, PlatformTypeBuildData buildData) where T : RxPlatformTypeAttribute
         {
             foreach (var kvp in data)
             {
@@ -246,12 +280,19 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
                             }
                         }
                     }
-                    var methods = GetItems(metToProcess.ToArray(), instance);
+                    JsonObject methodInit = new JsonObject();
+                    var methods = GetItems(metToProcess.ToArray(), instance, buildData, ref methodInit);
                     if (methods == null)
                     {
                         objType.valid = false;
                         break;
                     }
+                    if (methodInit.Count > 0)
+                    {
+                        objType.MethodOverrideData = methodInit;
+                    }
+                    data[kvp.Key] = objType;
+                    
                     if(instanceType == objType.type)
                     {
                         definedMethods.AddRange(methods.Item1);
@@ -276,10 +317,10 @@ namespace ENSACO.RxPlatform.Hosting.Model.Algorithms
         }
         public void FillTypes(PlatformTypeBuildData data)
         {
-            FillTypes(data.ObjectTypes);
-            FillTypes(data.PortTypes);
-            FillTypes(data.DomainTypes);
-            FillTypes(data.ApplicationTypes);
+            FillTypes(data.ObjectTypes, data);
+            FillTypes(data.PortTypes, data);
+            FillTypes(data.DomainTypes, data);
+            FillTypes(data.ApplicationTypes, data);
 
         }
     }

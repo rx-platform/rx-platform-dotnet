@@ -1,5 +1,6 @@
 ﻿using ENSACO.RxPlatform;
 using ENSACO.RxPlatform.Attributes;
+using ENSACO.RxPlatform.Model.System;
 using ENSACO.RxPlatform.Runtime;
 using System;
 using System.Collections.Generic;
@@ -320,7 +321,6 @@ namespace DynamicAssembly
         {
             RxPlatformLog.WriteLogTrace("test", $"DynamicObject: MyEvent_OnObjectProp2Change event fired. New Value: {obj}");
         }
-
         public void FunkcijaNeka22()
         {
             RxPlatformLog.WriteLogTrace("test", "DynamicObject: FunkcijaNeka method called.");
